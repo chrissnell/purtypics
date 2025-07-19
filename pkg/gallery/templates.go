@@ -43,8 +43,8 @@ a {
 }
 
 .site-title {
-  font-size: 2rem;
-  font-weight: 300;
+  font-size: 2.5rem;
+  font-weight: 600;
   color: var(--text-color);
 }
 
@@ -87,13 +87,13 @@ main {
 
 /* Photo items for masonry.js - fixed width for automatic column adjustment */
 .photo-item {
-  width: 280px;
-  margin-bottom: 20px;
+  width: 490px;
+  margin-bottom: 3px;
 }
 
 @media (max-width: 600px) {
   .photo-item {
-    width: calc(50% - 10px);
+    width: calc(50% - 1.5px);
   }
 }
 
@@ -130,7 +130,7 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0.25rem 0.5rem;
+  padding: 0;
   background: rgba(0,0,0,0.5);
   color: #ffffff;
   font-family: var(--font-mono);
@@ -184,8 +184,16 @@ main {
 }
 
 .album-title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
+}
+
+.album-description {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .album-count {
@@ -375,12 +383,20 @@ function initVideoHover() {
       video.play().catch(e => {
         console.error('Video play failed:', e);
       });
+      const playButton = item.querySelector('.play-button');
+      if (playButton) {
+        playButton.style.display = 'none';
+      }
     });
     
     item.addEventListener('mouseleave', () => {
       video.style.opacity = '0';
       video.pause();
       video.currentTime = 0;
+      const playButton = item.querySelector('.play-button');
+      if (playButton) {
+        playButton.style.display = '';
+      }
     });
   });
 }
@@ -594,7 +610,7 @@ function initMasonry() {
       const msnry = new Masonry(photoGrid, {
         itemSelector: '.photo-item',
         columnWidth: '.photo-item',
-        gutter: 20,
+        gutter: 3,
         fitWidth: true,
         stagger: 30,
         resize: true
@@ -612,7 +628,7 @@ function initMasonry() {
       const msnry = new Masonry(albumGrid, {
         itemSelector: '.album-item',
         columnWidth: '.album-item',
-        gutter: 20,
+        gutter: 3,
         fitWidth: true,
         stagger: 30,
         resize: true
@@ -725,6 +741,7 @@ const indexContent = `<div class="album-grid-container">
       {{end}}
       {{end}}
       <h2 class="album-title">{{.Title}}</h2>
+      {{if .Description}}<p class="album-description">{{.Description}}</p>{{end}}
       <p class="album-count">{{len .Photos}} photos</p>
     </a>
     {{end}}

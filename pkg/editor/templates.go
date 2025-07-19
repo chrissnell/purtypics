@@ -722,6 +722,7 @@ async function saveAll() {
     
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
+    saveBtn.style.transform = 'scale(0.95)';
     
     try {
         const response = await fetch('/api/save', {
@@ -742,6 +743,7 @@ async function saveAll() {
             
             setTimeout(() => {
                 saveBtn.textContent = originalText;
+                saveBtn.style.transform = '';
             }, 2000);
         } else {
             throw new Error('Save failed');
@@ -758,9 +760,11 @@ async function saveAll() {
             saveBtn.textContent = originalText;
             saveBtn.style.background = '#AA0000';
             saveBtn.style.borderColor = '#AA0000';
+            saveBtn.style.transform = '';
         }, 2000);
     } finally {
         saveBtn.disabled = false;
+        saveBtn.style.transform = '';
     }
 }
 

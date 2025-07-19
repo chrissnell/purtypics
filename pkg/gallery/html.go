@@ -175,7 +175,7 @@ func (g *HTMLGenerator) generateAlbumPage(album Album) error {
 		Content     template.HTML
 		Breadcrumbs bool
 	}{
-		Title:       album.Title,
+		Title:       g.SiteTitle + " :: " + album.Title,
 		SiteTitle:   g.SiteTitle,
 		BaseURL:     "..",
 		Content:     template.HTML(contentBuf.String()),
