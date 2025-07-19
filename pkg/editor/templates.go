@@ -15,7 +15,6 @@ const editorHTML = `<!DOCTYPE html>
             <div class="actions">
                 <button id="saveBtn" class="btn btn-primary">Save All Changes</button>
                 <button id="generateBtn" class="btn btn-secondary">Generate Gallery</button>
-                <span id="saveStatus"></span>
             </div>
         </header>
 
@@ -439,7 +438,6 @@ textarea.form-control {
     height: 80px;
     object-fit: contain;
     background: #000000;
-    image-orientation: from-image;
 }
 
 .photo-grid-selector .photo-option .photo-name {
@@ -538,7 +536,8 @@ function renderAlbums() {
         card.onclick = () => editAlbum(album);
         
         const albumName = album.path.split('/').pop();
-        const coverImage = album.coverPhoto || 'placeholder.jpg';
+        // Use first photo as default cover if none set
+        const coverImage = album.coverPhoto || (album.photos && album.photos.length > 0 ? album.photos[0] : 'placeholder.jpg');
         
         card.innerHTML = ` + "`" + `
             <img src="/images/${albumName}/${coverImage}" alt="${album.title}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22250%22 height=%22200%22 viewBox=%220 0 250 200%22><rect fill=%22%23ddd%22 width=%22250%22 height=%22200%22/><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">
@@ -617,7 +616,12 @@ async function editAlbum(album) {
     document.getElementById('album-title').value = album.title;
     document.getElementById('album-description').value = album.description || '';
 
-    document.getElementById('album-cover').value = album.coverPhoto || '';
+    // Set cover photo - use first photo if none selected
+    let coverPhoto = album.coverPhoto;
+    if (!coverPhoto && album.photos && album.photos.length > 0) {
+        coverPhoto = album.photos[0];
+    }
+    document.getElementById('album-cover').value = coverPhoto || '';
     
     // Load photos for cover photo selection
     await loadCoverPhotoOptions(album);
@@ -637,10 +641,18 @@ async function loadCoverPhotoOptions(album) {
         
         selector.innerHTML = '';
         
+        // Use first photo as default if no cover selected
+        let selectedCover = album.coverPhoto;
+        if (!selectedCover && photos.length > 0) {
+            selectedCover = photos[0].filename;
+            // Update the hidden input with the default
+            document.getElementById('album-cover').value = selectedCover;
+        }
+        
         photos.forEach(photo => {
             const option = document.createElement('div');
             option.className = 'photo-option';
-            if (photo.filename === album.coverPhoto) {
+            if (photo.filename === selectedCover) {
                 option.classList.add('selected');
             }
             
@@ -648,7 +660,7 @@ async function loadCoverPhotoOptions(album) {
             const thumbUrl = ` + "`" + `/thumbs/small/${albumName}/${photo.filename}` + "`" + `;
             
             option.innerHTML = ` + "`" + `
-                <img src="${thumbUrl}" alt="${photo.filename}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2280%22 viewBox=%220 0 100 80%22><rect fill=%22%23ddd%22 width=%22100%22 height=%2280%22/><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2210%22>No Image</text></svg>'">
+                <img src="${thumbUrl}" alt="${photo.filename}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2280%22 viewBox=%220 0 100 80%22><rect fill=%22%23ddd%22 width=%22100%22 height=%2280%22/><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%228%22>Click to select</text><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%221.5em%22 font-size=%228%22>cover photo</text></svg>'">
                 <div class="photo-name">${photo.filename}</div>
             ` + "`" + `;
             
@@ -706,10 +718,10 @@ function closePhotoModal() {
 // Save all changes
 async function saveAll() {
     const saveBtn = document.getElementById('saveBtn');
-    const saveStatus = document.getElementById('saveStatus');
+    const originalText = saveBtn.textContent;
     
     saveBtn.disabled = true;
-    saveStatus.textContent = 'Saving...';
+    saveBtn.textContent = 'Saving...';
     
     try {
         const response = await fetch('/api/save', {
@@ -722,29 +734,31 @@ async function saveAll() {
         
         if (response.ok) {
             hasUnsavedChanges = false;
-            saveStatus.textContent = 'Saved successfully!';
-            saveStatus.style.color = '#27ae60';
+            saveBtn.textContent = 'Saved!';
             
-            // Restore Save button to green when saved
-            const saveBtn = document.getElementById('saveBtn');
+            // Restore Save button to teal when saved
             saveBtn.style.background = '#17a2b8';
             saveBtn.style.borderColor = '#17a2b8';
             
             setTimeout(() => {
-                saveStatus.textContent = '';
-            }, 3000);
+                saveBtn.textContent = originalText;
+            }, 2000);
         } else {
             throw new Error('Save failed');
         }
     } catch (error) {
         console.error('Error saving:', error);
-        saveStatus.textContent = 'Error saving changes';
-        saveStatus.style.color = '#e74c3c';
+        saveBtn.textContent = 'Error!';
         
         // Keep button red on error
-        const saveBtn = document.getElementById('saveBtn');
-        saveBtn.style.background = '#AA0000';
-        saveBtn.style.borderColor = '#AA0000';
+        saveBtn.style.background = '#dc3545';
+        saveBtn.style.borderColor = '#dc3545';
+        
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '#AA0000';
+            saveBtn.style.borderColor = '#AA0000';
+        }, 2000);
     } finally {
         saveBtn.disabled = false;
     }
@@ -758,11 +772,6 @@ function scheduleAutoSave() {
     if (autoSaveTimer) {
         clearTimeout(autoSaveTimer);
     }
-    
-    // Update status to show unsaved changes
-    const saveStatus = document.getElementById('saveStatus');
-    saveStatus.textContent = 'Unsaved changes';
-    saveStatus.style.color = '#e67e22';
     
     // Change Save button to red when there are unsaved changes
     const saveBtn = document.getElementById('saveBtn');

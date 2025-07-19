@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cjs/purtypics/pkg/exif"
 	"github.com/cjs/purtypics/pkg/gallery"
 	"github.com/cjs/purtypics/pkg/metadata"
 	"github.com/disintegration/imaging"
@@ -337,6 +338,15 @@ func (s *Server) handleThumbnails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Apply EXIF orientation manually
+	orientation, err := exif.GetOrientation(sourcePath)
+	if err != nil {
+		fmt.Printf("Error getting orientation for %s: %v\n", sourcePath, err)
+	} else {
+		fmt.Printf("Applying orientation %d to %s\n", orientation, photo)
+	}
+	img = applyOrientation(img, orientation)
+	
 	// Create thumbnail - fit within bounds while maintaining aspect ratio
 	thumb := imaging.Fit(img, width, height, imaging.Lanczos)
 	
@@ -441,4 +451,37 @@ func (s *Server) runGeneration() {
 	s.genProgress = 100
 	s.genStatus = "completed"
 	s.genMutex.Unlock()
+}
+
+// applyOrientation applies EXIF orientation transformations to an image
+func applyOrientation(img image.Image, orientation int) image.Image {
+	switch orientation {
+	case 1:
+		// Normal - no rotation needed
+		return img
+	case 2:
+		// Flip horizontal
+		return imaging.FlipH(img)
+	case 3:
+		// Rotate 180 degrees
+		return imaging.Rotate180(img)
+	case 4:
+		// Flip vertical
+		return imaging.FlipV(img)
+	case 5:
+		// Rotate 90 degrees clockwise and flip horizontally
+		return imaging.FlipH(imaging.Rotate90(img))
+	case 6:
+		// Rotate 90 degrees clockwise (actually 270 in imaging library)
+		return imaging.Rotate270(img)
+	case 7:
+		// Rotate 90 degrees counterclockwise and flip horizontally
+		return imaging.FlipH(imaging.Rotate270(img))
+	case 8:
+		// Rotate 90 degrees counterclockwise (actually 90 in imaging library)
+		return imaging.Rotate90(img)
+	default:
+		// Unknown orientation, return as-is
+		return img
+	}
 }

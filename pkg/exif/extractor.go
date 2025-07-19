@@ -19,6 +19,7 @@ type EXIFData struct {
 	ShutterSpeed string
 	FocalLength  int
 	GPS          *GPSData
+	Orientation  int // EXIF orientation value (1-8)
 }
 
 // GPSData contains location information
@@ -107,6 +108,40 @@ func ExtractMetadata(path string) (*EXIFData, error) {
 		}
 	}
 
+	// Extract orientation
+	if orientation, err := x.Get(exif.Orientation); err == nil {
+		if val, err := orientation.Int(0); err == nil {
+			data.Orientation = val
+		} else {
+			data.Orientation = 1 // Default to normal orientation
+		}
+	} else {
+		data.Orientation = 1 // Default to normal orientation
+	}
+
 	return data, nil
+}
+
+// GetOrientation reads only the EXIF orientation from an image file
+func GetOrientation(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 1, err
+	}
+	defer file.Close()
+
+	x, err := exif.Decode(file)
+	if err != nil {
+		return 1, nil // Default to normal orientation if no EXIF
+	}
+
+	// Extract orientation
+	if orientation, err := x.Get(exif.Orientation); err == nil {
+		if val, err := orientation.Int(0); err == nil {
+			return val, nil
+		}
+	}
+
+	return 1, nil // Default to normal orientation
 }
 

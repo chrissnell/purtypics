@@ -130,11 +130,11 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0.4rem 0.6rem;
-  background: rgba(0,0,0,0.75);
+  padding: 0.25rem 0.5rem;
+  background: rgba(0,0,0,0.5);
   color: #ffffff;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
