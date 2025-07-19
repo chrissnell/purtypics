@@ -192,6 +192,7 @@ h1 {
     font-weight: 700;
     text-transform: uppercase;
     transition: all 0.2s;
+    min-width: 160px;
 }
 
 .btn-primary {
@@ -453,6 +454,10 @@ textarea.form-control {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+#saveBtn, #generateBtn {
+    min-width: 180px;
 }
 
 #generateBtn {

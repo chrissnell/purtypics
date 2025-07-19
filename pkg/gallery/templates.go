@@ -44,7 +44,7 @@ a {
 
 .site-title {
   font-size: 2.5rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-color);
 }
 
@@ -71,17 +71,17 @@ main {
 /* Masonry Grid - Using Masonry.js */
 .masonry-container {
   padding: 2rem;
-  text-align: center; /* Centers the masonry grid */
+  text-align: left; /* Left-aligns the masonry grid */
 }
 
 .masonry-grid {
-  margin: 0 auto;
+  margin: 0;
   display: inline-block; /* Allows fitWidth to work properly */
 }
 
 /* Album grid container */
 .album-grid {
-  margin: 0 auto;
+  margin: 0;
   display: inline-block;
 }
 
@@ -146,7 +146,7 @@ main {
 /* Album Grid - Using Masonry.js */
 .album-grid-container {
   padding: 2rem;
-  text-align: center;
+  text-align: left;
 }
 
 .album-item {
@@ -615,9 +615,6 @@ function initMasonry() {
         stagger: 30,
         resize: true
       });
-      
-      // Center the grid
-      photoGrid.style.margin = '0 auto';
     });
   }
 
@@ -633,9 +630,6 @@ function initMasonry() {
         stagger: 30,
         resize: true
       });
-      
-      // Center the grid
-      albumGrid.style.margin = '0 auto';
     });
   }
 }
@@ -702,7 +696,7 @@ const baseTemplate = `<!DOCTYPE html>
   
   {{if .Breadcrumbs}}
   <nav class="breadcrumbs">
-    <a href="{{.BaseURL}}/">Albums</a> /
+    <a href="{{.BaseURL}}/">Albums</a> ::
     <span>{{.Title}}</span>
   </nav>
   {{end}}
