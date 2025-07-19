@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cjs/purtypics/pkg/gallery"
@@ -22,9 +23,16 @@ import (
 type Server struct {
 	SourcePath   string
 	MetadataPath string
+	OutputPath   string
 	Port         int
 	metadata     *metadata.GalleryMetadata
 	albums       []gallery.Album
+	
+	// Generation progress tracking
+	genProgress   int
+	genStatus     string
+	genError      string
+	genMutex      sync.RWMutex
 }
 
 // NewServer creates a new editor server
@@ -40,8 +48,31 @@ func NewServer(sourcePath, metadataPath string, port int) *Server {
 	}
 }
 
+// GetActualPort finds an available port and returns it
+func (s *Server) GetActualPort() (int, net.Listener, error) {
+	// Find available port
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+	if err != nil {
+		// If the specified port is in use, find an available one
+		listener, err = net.Listen("tcp", ":0")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to find available port: %w", err)
+		}
+	}
+	
+	// Get the actual port
+	addr := listener.Addr().(*net.TCPAddr)
+	s.Port = addr.Port
+	return s.Port, listener, nil
+}
+
 // Start runs the web server
 func (s *Server) Start() error {
+	return s.StartWithListener(nil)
+}
+
+// StartWithListener runs the web server with a provided listener
+func (s *Server) StartWithListener(listener net.Listener) error {
 	// Load existing metadata
 	meta, err := metadata.Load(s.MetadataPath)
 	if err != nil {
@@ -64,6 +95,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/albums", s.handleAlbums)
 	mux.HandleFunc("/api/photos/", s.handlePhotos)
 	mux.HandleFunc("/api/save", s.handleSave)
+	mux.HandleFunc("/api/generate", s.handleGenerate)
+	mux.HandleFunc("/api/generate/progress", s.handleGenerateProgress)
 	
 	// Static files
 	mux.HandleFunc("/", s.handleIndex)
@@ -75,21 +108,14 @@ func (s *Server) Start() error {
 	// Serve thumbnails (dynamic generation)
 	mux.HandleFunc("/thumbs/", s.handleThumbnails)
 
-	// Find available port
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		// If the specified port is in use, find an available one
-		listener, err = net.Listen("tcp", ":0")
+	// If no listener provided, create one
+	if listener == nil {
+		var err error
+		_, listener, err = s.GetActualPort()
 		if err != nil {
-			return fmt.Errorf("failed to find available port: %w", err)
+			return err
 		}
 	}
-	
-	// Get the actual port
-	addr := listener.Addr().(*net.TCPAddr)
-	s.Port = addr.Port
-
-	fmt.Printf("Starting metadata editor on http://localhost:%d\n", s.Port)
 	
 	// Serve on the listener
 	return http.Serve(listener, mux)
@@ -330,4 +356,89 @@ func (s *Server) handleThumbnails(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		jpeg.Encode(w, thumb, &jpeg.Options{Quality: 85})
 	}
+}
+
+// handleGenerate starts the gallery generation process
+func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Check if output path is set
+	if s.OutputPath == "" {
+		http.Error(w, "Output path not configured", http.StatusInternalServerError)
+		return
+	}
+	
+	// Reset progress
+	s.genMutex.Lock()
+	s.genProgress = 0
+	s.genStatus = "running"
+	s.genError = ""
+	s.genMutex.Unlock()
+	
+	// Start generation in background
+	go s.runGeneration()
+	
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+}
+
+// handleGenerateProgress returns the current generation progress
+func (s *Server) handleGenerateProgress(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	s.genMutex.RLock()
+	progress := s.genProgress
+	status := s.genStatus
+	genError := s.genError
+	s.genMutex.RUnlock()
+	
+	response := map[string]interface{}{
+		"progress": progress,
+		"status":   status,
+	}
+	
+	if genError != "" {
+		response["error"] = genError
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// runGeneration performs the actual gallery generation
+func (s *Server) runGeneration() {
+	// Create a progress callback
+	progressCallback := func(current, total int, message string) {
+		s.genMutex.Lock()
+		if total > 0 {
+			s.genProgress = (current * 100) / total
+		}
+		s.genMutex.Unlock()
+	}
+	
+	// Create generator with progress callback
+	generator := gallery.NewGenerator(s.SourcePath, s.OutputPath, s.metadata.Title, "", false)
+	generator.MetadataPath = s.MetadataPath
+	generator.ProgressCallback = progressCallback
+	
+	// Run generation
+	if err := generator.Generate(); err != nil {
+		s.genMutex.Lock()
+		s.genStatus = "error"
+		s.genError = err.Error()
+		s.genMutex.Unlock()
+		return
+	}
+	
+	// Mark as completed
+	s.genMutex.Lock()
+	s.genProgress = 100
+	s.genStatus = "completed"
+	s.genMutex.Unlock()
 }

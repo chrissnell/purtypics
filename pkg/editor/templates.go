@@ -14,6 +14,7 @@ const editorHTML = `<!DOCTYPE html>
             <h1>Purtypics Metadata Editor</h1>
             <div class="actions">
                 <button id="saveBtn" class="btn btn-primary">Save All Changes</button>
+                <button id="generateBtn" class="btn btn-secondary">Generate Gallery</button>
                 <span id="saveStatus"></span>
             </div>
         </header>
@@ -177,7 +178,7 @@ h1 {
 }
 
 #saveStatus {
-    color: #28a745;
+    color: #17a2b8;
     font-size: 14px;
     font-weight: 700;
 }
@@ -195,14 +196,14 @@ h1 {
 }
 
 .btn-primary {
-    background: #215e21;
+    background: #17a2b8;
     color: #FFFFFF;
-    border-color: #215e21;
+    border-color: #17a2b8;
 }
 
 .btn-primary:hover {
-    background: #1a4a1a;
-    border-color: #1a4a1a;
+    background: #138496;
+    border-color: #138496;
 }
 
 .btn-secondary {
@@ -438,6 +439,7 @@ textarea.form-control {
     height: 80px;
     object-fit: contain;
     background: #000000;
+    image-orientation: from-image;
 }
 
 .photo-grid-selector .photo-option .photo-name {
@@ -453,6 +455,33 @@ textarea.form-control {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+#generateBtn {
+    position: relative;
+    overflow: hidden;
+}
+
+#generateBtn.generating {
+    background: #17a2b8;
+    color: #FFFFFF;
+    border-color: #17a2b8;
+}
+
+#generateBtn .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 100%;
+    background: #ffaa00;
+    transition: width 0.3s ease;
+    z-index: 0;
+}
+
+#generateBtn .btn-text {
+    position: relative;
+    z-index: 1;
 }
 `
 
@@ -698,8 +727,8 @@ async function saveAll() {
             
             // Restore Save button to green when saved
             const saveBtn = document.getElementById('saveBtn');
-            saveBtn.style.background = '#215e21';
-            saveBtn.style.borderColor = '#215e21';
+            saveBtn.style.background = '#17a2b8';
+            saveBtn.style.borderColor = '#17a2b8';
             
             setTimeout(() => {
                 saveStatus.textContent = '';
@@ -842,6 +871,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save button
     document.getElementById('saveBtn').addEventListener('click', saveAll);
     
+    // Generate button
+    document.getElementById('generateBtn').addEventListener('click', generateGallery);
+    
     // Modal close on background click
     document.getElementById('album-modal').addEventListener('click', (e) => {
         if (e.target.id === 'album-modal') closeAlbumModal();
@@ -851,4 +883,88 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'photo-modal') closePhotoModal();
     });
 });
+
+// Generate gallery with progress tracking
+async function generateGallery() {
+    const generateBtn = document.getElementById('generateBtn');
+    
+    // Save any unsaved changes first
+    if (hasUnsavedChanges) {
+        await saveAll();
+    }
+    
+    // Update button state
+    generateBtn.disabled = true;
+    generateBtn.classList.add('generating');
+    generateBtn.innerHTML = '<div class="progress-bar"></div><span class="btn-text">Generating...</span>';
+    
+    try {
+        // Start generation
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Generation failed');
+        }
+        
+        // Poll for progress
+        const progressBar = generateBtn.querySelector('.progress-bar');
+        let progress = 0;
+        
+        const pollProgress = async () => {
+            try {
+                const progressResponse = await fetch('/api/generate/progress');
+                const data = await progressResponse.json();
+                
+                progress = data.progress || 0;
+                progressBar.style.width = progress + '%';
+                
+                if (data.status === 'running') {
+                    setTimeout(pollProgress, 500);
+                } else if (data.status === 'completed') {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        generateBtn.classList.remove('generating');
+                        generateBtn.innerHTML = 'Gallery Generated!';
+                        generateBtn.style.background = '#215e21';
+                        generateBtn.style.borderColor = '#215e21';
+                        
+                        setTimeout(() => {
+                            generateBtn.innerHTML = 'Generate Gallery';
+                            generateBtn.style.background = '';
+                            generateBtn.style.borderColor = '';
+                            generateBtn.disabled = false;
+                        }, 3000);
+                    }, 500);
+                } else if (data.status === 'error') {
+                    throw new Error(data.error || 'Generation failed');
+                }
+            } catch (error) {
+                console.error('Error polling progress:', error);
+                throw error;
+            }
+        };
+        
+        // Start polling after a short delay
+        setTimeout(pollProgress, 500);
+        
+    } catch (error) {
+        console.error('Error generating gallery:', error);
+        generateBtn.classList.remove('generating');
+        generateBtn.innerHTML = 'Generation Failed';
+        generateBtn.style.background = '#dc3545';
+        generateBtn.style.borderColor = '#dc3545';
+        
+        setTimeout(() => {
+            generateBtn.innerHTML = 'Generate Gallery';
+            generateBtn.style.background = '';
+            generateBtn.style.borderColor = '';
+            generateBtn.disabled = false;
+        }, 3000);
+    }
+}
 `

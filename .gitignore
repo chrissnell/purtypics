@@ -12,6 +12,7 @@ resources/
 .hugo_build.lock
 example/
 output/
+website/
 
 # OS files
 .DS_Store

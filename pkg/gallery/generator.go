@@ -12,17 +12,21 @@ import (
 	"github.com/cjs/purtypics/pkg/video"
 )
 
+// ProgressCallback is called to report generation progress
+type ProgressCallback func(current, total int, message string)
+
 // Generator creates the photo gallery
 type Generator struct {
-	SourcePath     string
-	OutputPath     string
-	SiteTitle      string
-	BaseURL        string
-	Verbose        bool
-	MetadataPath   string
-	metadata       *metadata.GalleryMetadata
-	imageProcessor *image.Processor
-	videoProcessor *video.Processor
+	SourcePath       string
+	OutputPath       string
+	SiteTitle        string
+	BaseURL          string
+	Verbose          bool
+	MetadataPath     string
+	metadata         *metadata.GalleryMetadata
+	imageProcessor   *image.Processor
+	videoProcessor   *video.Processor
+	ProgressCallback ProgressCallback
 }
 
 // NewGenerator creates a new gallery generator
@@ -72,6 +76,11 @@ func (g *Generator) Generate() error {
 
 	fmt.Printf("Found %d albums\n", len(albums))
 
+	// Report initial progress
+	if g.ProgressCallback != nil {
+		g.ProgressCallback(0, len(albums), "Starting album processing")
+	}
+
 	// Process each album and build filtered list
 	filteredAlbums := make([]Album, 0, len(albums))
 	for i := range albums {
@@ -92,6 +101,12 @@ func (g *Generator) Generate() error {
 		}
 		
 		fmt.Printf("Processing %s\n", album.Title)
+		
+		// Report progress
+		if g.ProgressCallback != nil {
+			g.ProgressCallback(i+1, len(albums), fmt.Sprintf("Processing album: %s", album.Title))
+		}
+		
 		if err := g.processAlbum(album); err != nil {
 			log.Printf("Error processing album %s: %v", album.Title, err)
 			continue
