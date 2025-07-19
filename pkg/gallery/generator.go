@@ -98,6 +98,9 @@ func (g *Generator) Generate() error {
 				continue // Skip hidden albums
 			}
 			album.CoverPhoto = albumMeta.CoverPhoto
+			if album.CoverPhoto != "" {
+				fmt.Printf("  Using cover photo: %s\n", album.CoverPhoto)
+			}
 		}
 		
 		fmt.Printf("Processing %s\n", album.Title)
