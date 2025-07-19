@@ -1,0 +1,29 @@
+# Binaries
+purtypics
+*.exe
+
+# Build directories
+scratch/
+dist/
+
+# Generated content
+public/
+resources/
+.hugo_build.lock
+example/
+output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Test coverage
+*.out
+coverage.html
