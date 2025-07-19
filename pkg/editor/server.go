@@ -148,14 +148,22 @@ func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 		CoverPhoto  string    `json:"coverPhoto"`
 		Hidden      bool      `json:"hidden"`
 		Date        time.Time `json:"date"`
+		Photos      []string  `json:"photos"`
 	}
 
 	albums := make([]albumResponse, len(s.albums))
 	for i, album := range s.albums {
+		// Get photo filenames
+		photos := make([]string, len(album.Photos))
+		for j, photo := range album.Photos {
+			photos[j] = photo.Filename
+		}
+		
 		resp := albumResponse{
 			Path:       album.Path,
 			Title:      album.Title,
 			PhotoCount: len(album.Photos),
+			Photos:     photos,
 		}
 
 		// Apply metadata if exists

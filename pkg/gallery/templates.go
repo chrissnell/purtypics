@@ -705,7 +705,19 @@ const indexContent = `<div class="album-grid-container">
     {{range .Albums}}
     <a href="{{$.BaseURL}}/albums/{{.ID}}.html" class="album-item">
       {{if .Photos}}
-      {{with index .Photos 0}}
+      {{$album := .}}
+      {{$coverPhoto := ""}}
+      {{if $album.CoverPhoto}}
+        {{range $album.Photos}}
+          {{if eq .Filename $album.CoverPhoto}}
+            {{$coverPhoto = .}}
+          {{end}}
+        {{end}}
+      {{end}}
+      {{if not $coverPhoto}}
+        {{$coverPhoto = index $album.Photos 0}}
+      {{end}}
+      {{with $coverPhoto}}
       <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "medium"}}" 
            alt="{{.Title}}" 
            class="album-thumbnail"
