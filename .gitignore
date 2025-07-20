@@ -1,0 +1,51 @@
+# Binaries
+purtypics
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build output
+/build/
+/dist/
+/website/
+/output/
+/example
+
+# Logs
+*.log
+editor.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Temporary files
+/tmp/
+/temp/
+*.tmp
+/scratch/
+
+# Local configuration
+.env
+.env.local
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor (if using vendor mode)
+/vendor/
