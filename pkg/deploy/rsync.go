@@ -12,8 +12,9 @@ import (
 
 // RsyncDeployer handles rsync deployments
 type RsyncDeployer struct {
-	config *RsyncConfig
-	output string
+	config           *RsyncConfig
+	output           string
+	progressCallback func(int, string)
 }
 
 // NewRsyncDeployer creates a new rsync deployer
@@ -24,8 +25,21 @@ func NewRsyncDeployer(config *RsyncConfig, outputPath string) *RsyncDeployer {
 	}
 }
 
+// SetProgressCallback sets the progress callback function
+func (r *RsyncDeployer) SetProgressCallback(fn func(int, string)) {
+	r.progressCallback = fn
+}
+
 // Deploy performs the rsync deployment
 func (r *RsyncDeployer) Deploy() error {
+	// If progress callback is set, use the progress version
+	if r.progressCallback != nil {
+		return r.DeployWithProgress(func(percent int) {
+			r.progressCallback(percent, fmt.Sprintf("Deploying: %d%%", percent))
+		})
+	}
+	
+	// Otherwise use simple version
 	if err := r.validate(); err != nil {
 		return err
 	}
@@ -140,6 +154,10 @@ func (r *RsyncDeployer) buildArgs() []string {
 		"--human-readable",  // human readable sizes
 		"--update",          // skip files that are newer on receiver
 		"--checksum",        // skip based on checksum, not mod-time & size
+		"--exclude",         // exclude gallery.yaml from deployment
+		"gallery.yaml",
+		"--exclude",         // exclude deploy.yaml from deployment
+		"deploy.yaml",
 	}
 
 	// Add port if specified

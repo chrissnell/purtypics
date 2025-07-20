@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/cjs/purtypics/pkg/common"
 	"github.com/cjs/purtypics/pkg/gallery"
 	"github.com/cjs/purtypics/pkg/metadata"
 	"github.com/spf13/cobra"
@@ -51,10 +51,7 @@ Otherwise, it expects a gallery directory with photos, gallery.yaml, and output/
 			
 			// Handle metadata path
 			if generateMetadata != "" {
-				metadataPath = generateMetadata
-				if !filepath.IsAbs(metadataPath) {
-					metadataPath = filepath.Join(sourcePath, metadataPath)
-				}
+				metadataPath = common.ResolvePath(generateMetadata, sourcePath)
 			} else {
 				metadataPath = filepath.Join(sourcePath, "gallery.yaml")
 			}
@@ -71,8 +68,8 @@ Otherwise, it expects a gallery directory with photos, gallery.yaml, and output/
 		}
 
 		// Ensure source directory exists
-		if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
-			return fmt.Errorf("source directory does not exist: %s", sourcePath)
+		if err := common.ValidateDirectory(sourcePath); err != nil {
+			return err
 		}
 
 		// Load metadata to get title

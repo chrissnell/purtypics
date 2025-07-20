@@ -688,9 +688,10 @@ textarea.form-control {
     left: 0;
     width: 0%;
     height: 100%;
-    background: #ffaa00;
+    background: linear-gradient(90deg, #138496 0%, #17a2b8 100%);
     transition: width 0.3s ease;
     z-index: 0;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 #generateBtn .btn-text {
@@ -1222,7 +1223,13 @@ async function generateGallery() {
                 progress = data.progress || 0;
                 progressBar.style.width = progress + '%';
                 
-                if (data.status === 'running') {
+                // Update button text with progress
+                const btnText = generateBtn.querySelector('.btn-text');
+                if (btnText) {
+                    btnText.textContent = 'Generating... ' + progress + '%';
+                }
+                
+                if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'idle') {
                     setTimeout(pollProgress, 500);
                 } else if (data.status === 'completed') {
                     progressBar.style.width = '100%';
@@ -1449,7 +1456,7 @@ async function deployGallery(dryRun) {
                         progress = data.progress || 0;
                         progressBar.style.width = progress + '%';
                         
-                        if (data.status === 'running') {
+                        if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'idle') {
                             setTimeout(pollProgress, 500);
                         } else if (data.status === 'completed') {
                             progressBar.style.width = '100%';

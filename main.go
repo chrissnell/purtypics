@@ -4,7 +4,8 @@ import (
 	"github.com/cjs/purtypics/cmd"
 )
 
-var version = "0.1.0"
+// version is set by build flags
+var version = "dev"
 
 func main() {
 	cmd.Execute(version)

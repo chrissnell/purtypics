@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 
+	"github.com/cjs/purtypics/pkg/common"
 	"github.com/cjs/purtypics/pkg/editor"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +18,7 @@ var (
 )
 
 var editCmd = &cobra.Command{
-	Use:   "edit",
+	Use:   "edit [path]",
 	Short: "Launch the web-based metadata editor",
 	Long: `Launch a web-based editor for editing photo metadata.
 	
@@ -28,30 +26,52 @@ The editor allows you to:
   - View and edit photo titles and descriptions
   - Mark photos as favorites
   - Hide photos from the gallery
-  - Save metadata to a YAML file`,
+  - Save metadata to a YAML file
+
+Usage:
+  purtypics edit                    # Edit gallery in current directory
+  purtypics edit /path/to/gallery   # Edit gallery in specified directory
+  purtypics edit -s /photos -o /web # Use explicit source and output paths
+
+When using explicit flags (-s and -o), the command works with any directory structure.
+Otherwise, it expects a gallery directory with photos and gallery.yaml.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Validate required flags
-		if editSource == "" {
-			return fmt.Errorf("source directory is required")
-		}
-		if editOutput == "" {
-			editOutput = editSource // Default output to source if not specified
+		var sourcePath, outputPath, metadataPath string
+
+		// Check if using explicit flags
+		if editSource != "" || editOutput != "" {
+			// Legacy mode with explicit paths
+			if editSource == "" {
+				return fmt.Errorf("source directory is required when using explicit paths")
+			}
+			if editOutput == "" {
+				editOutput = editSource
+			}
+			
+			sourcePath = editSource
+			outputPath = editOutput
+			metadataPath = common.ResolvePath(editMetadata, sourcePath)
+		} else {
+			// New mode matching generate behavior
+			galleryPath := "."
+			if len(args) > 0 {
+				galleryPath = args[0]
+			}
+			
+			sourcePath = galleryPath
+			outputPath = galleryPath
+			metadataPath = filepath.Join(galleryPath, "gallery.yaml")
 		}
 
 		// Ensure source directory exists
-		if _, err := os.Stat(editSource); os.IsNotExist(err) {
-			return fmt.Errorf("source directory does not exist: %s", editSource)
-		}
-
-		// Determine metadata file path
-		metadataPath := editMetadata
-		if !filepath.IsAbs(metadataPath) {
-			metadataPath = filepath.Join(editSource, metadataPath)
+		if err := common.ValidateDirectory(sourcePath); err != nil {
+			return err
 		}
 
 		// Create and start the editor server
-		server := editor.NewServer(editSource, metadataPath, editPort)
-		server.OutputPath = editOutput
+		server := editor.NewServer(sourcePath, metadataPath, editPort)
+		server.OutputPath = outputPath
 		
 		// Get the actual port the server will listen on
 		actualPort, listener, err := server.GetActualPort()
@@ -65,7 +85,10 @@ The editor allows you to:
 		if !editNoBrowser {
 			url := fmt.Sprintf("http://localhost:%d", actualPort)
 			fmt.Printf("Opening browser at %s\n", url)
-			openBrowser(url)
+			if err := common.OpenBrowser(url); err != nil {
+				fmt.Printf("Failed to open browser: %v\n", err)
+				fmt.Printf("Please open %s in your browser\n", url)
+			}
 		}
 
 		fmt.Println("Press Ctrl+C to stop the server")
@@ -74,34 +97,12 @@ The editor allows you to:
 	},
 }
 
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "linux":
-		cmd = exec.Command("xdg-open", url)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	default:
-		fmt.Printf("Please open %s in your browser\n", url)
-		return
-	}
-	
-	if err := cmd.Start(); err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-		fmt.Printf("Please open %s in your browser\n", url)
-	}
-}
-
 func init() {
-	editCmd.Flags().StringVarP(&editSource, "source", "s", "", "Source directory containing photos (required)")
-	editCmd.Flags().StringVarP(&editOutput, "output", "o", "", "Output directory for metadata file (defaults to source)")
+	editCmd.Flags().StringVarP(&editSource, "source", "s", "", "Source directory containing photos (overrides default behavior)")
+	editCmd.Flags().StringVarP(&editOutput, "output", "o", "", "Output directory for metadata file (overrides default behavior)")
 	editCmd.Flags().StringVar(&editMetadata, "metadata", "gallery.yaml", "Path to metadata file (relative to output or absolute)")
 	editCmd.Flags().IntVarP(&editPort, "port", "p", 8080, "Port to run the editor server on")
 	editCmd.Flags().BoolVar(&editNoBrowser, "no-browser", false, "Don't open browser automatically")
-
-	editCmd.MarkFlagRequired("source")
 
 	rootCmd.AddCommand(editCmd)
 }
