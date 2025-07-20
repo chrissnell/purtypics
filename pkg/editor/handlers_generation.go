@@ -105,11 +105,14 @@ func (s *Server) runGeneration() {
 	}
 
 	// Run generation
+	fmt.Printf("Generating gallery from %s...\n", s.SourcePath)
 	if err := generator.Generate(); err != nil {
 		s.genTracker.SetError(fmt.Sprintf("Generation failed: %v", err))
+		fmt.Printf("Gallery generation failed: %v\n", err)
 		return
 	}
 
 	// Ensure we reach 100% completion
 	s.genTracker.Update(100, "completed")
+	fmt.Printf("\nGallery generated successfully at %s\n", outputPath)
 }

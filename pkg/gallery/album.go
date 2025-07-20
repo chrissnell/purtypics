@@ -1,6 +1,7 @@
 package gallery
 
 import (
+	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 type Album struct {
 	ID          string
 	Title       string
-	Description string
+	Description template.HTML
 	Path        string
 	Photos      []Photo
 	Thumbnail   string // photo ID for album thumbnail

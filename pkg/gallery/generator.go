@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"path/filepath"
 	"sync"
@@ -87,12 +88,12 @@ func (g *Generator) Generate() error {
 		album := &albums[i]
 		
 		// Apply album metadata
-		if albumMeta := g.metadata.GetAlbumMetadata(album.Path); albumMeta != nil {
+		if albumMeta := g.metadata.GetAlbumMetadata(album.ID); albumMeta != nil {
 			if albumMeta.Title != "" {
 				album.Title = albumMeta.Title
 			}
 			if albumMeta.Description != "" {
-				album.Description = albumMeta.Description
+				album.Description = template.HTML(albumMeta.Description)
 			}
 			if albumMeta.Hidden {
 				continue // Skip hidden albums

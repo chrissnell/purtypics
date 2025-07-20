@@ -89,13 +89,19 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		if deployDryRun {
 			fmt.Println("(DRY RUN - no changes will be made)")
 		}
-		return deployer.Deploy()
+		if err := deployer.Deploy(); err != nil {
+			return err
+		}
+		fmt.Printf("\nDeployment completed successfully!\n")
+		return nil
 		
 	case "s3":
 		return fmt.Errorf("S3 deployment not yet implemented")
+		// When implemented, add: fmt.Printf("\nDeployment completed successfully!\n")
 		
 	case "cloudflare":
 		return fmt.Errorf("Cloudflare deployment not yet implemented")
+		// When implemented, add: fmt.Printf("\nDeployment completed successfully!\n")
 		
 	default:
 		return fmt.Errorf("unknown deployment target: %s", deployTarget)

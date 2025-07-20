@@ -19,6 +19,7 @@ func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 
 	type albumResponse struct {
 		Path        string    `json:"path"`
+		RelativePath string   `json:"relativePath"`
 		Title       string    `json:"title"`
 		Description string    `json:"description"`
 		PhotoCount  int       `json:"photoCount"`
@@ -36,20 +37,26 @@ func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 			photos[j] = photo.Filename
 		}
 		
+		// Convert absolute path to relative path for metadata lookup
+		relPath, _ := filepath.Rel(s.SourcePath, album.Path)
+		
 		resp := albumResponse{
-			Path:       album.Path,
-			Title:      album.Title,
-			PhotoCount: len(album.Photos),
-			Photos:     photos,
+			Path:         album.Path,
+			RelativePath: relPath,
+			Title:        album.Title,
+			PhotoCount:   len(album.Photos),
+			Photos:       photos,
 		}
 
 		// Apply metadata if exists
-		if meta := s.metadata.GetAlbumMetadata(album.Path); meta != nil {
-			resp.Title = meta.Title
-			resp.Description = meta.Description
-			resp.CoverPhoto = meta.CoverPhoto
-			resp.Hidden = meta.Hidden
-			resp.Date = meta.Date
+		if relPath != "" {
+			if meta := s.metadata.GetAlbumMetadata(relPath); meta != nil {
+				resp.Title = meta.Title
+				resp.Description = meta.Description
+				resp.CoverPhoto = meta.CoverPhoto
+				resp.Hidden = meta.Hidden
+				resp.Date = meta.Date
+			}
 		}
 
 		albums[i] = resp

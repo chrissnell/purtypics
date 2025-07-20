@@ -29,10 +29,13 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 	var deployType string
 	if config.Rsync != nil {
 		deployType = "rsync"
+		fmt.Printf("Deployment type: rsync to %s:%s\n", config.Rsync.Host, config.Rsync.Path)
 	} else if config.S3 != nil {
 		deployType = "s3"
+		fmt.Printf("Deployment type: S3\n")
 	} else if config.Cloudflare != nil {
 		deployType = "cloudflare"
+		fmt.Printf("Deployment type: Cloudflare Pages\n")
 	} else {
 		http.Error(w, "No deployment configuration found", http.StatusBadRequest)
 		return
@@ -87,6 +90,8 @@ func (s *Server) runDeployment(config *deploy.Config, deployType string) {
 		sourcePath = filepath.Join(s.SourcePath, "output")
 	}
 
+	fmt.Printf("Starting deployment from %s...\n", sourcePath)
+
 	// Create deployer based on type
 	switch deployType {
 	case "rsync":
@@ -105,6 +110,7 @@ func (s *Server) runDeployment(config *deploy.Config, deployType string) {
 		// Run deployment
 		if err := deployer.Deploy(); err != nil {
 			s.deployTracker.SetError(fmt.Sprintf("Deployment failed: %v", err))
+			fmt.Printf("Deployment failed: %v\n", err)
 			return
 		}
 		
@@ -123,4 +129,5 @@ func (s *Server) runDeployment(config *deploy.Config, deployType string) {
 
 	// Update completion status
 	s.deployTracker.Update(100, "completed")
+	fmt.Printf("\nDeployment completed successfully!\n")
 }
