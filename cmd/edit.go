@@ -101,7 +101,7 @@ func init() {
 	editCmd.Flags().StringVarP(&editSource, "source", "s", "", "Source directory containing photos (overrides default behavior)")
 	editCmd.Flags().StringVarP(&editOutput, "output", "o", "", "Output directory for metadata file (overrides default behavior)")
 	editCmd.Flags().StringVar(&editMetadata, "metadata", "gallery.yaml", "Path to metadata file (relative to output or absolute)")
-	editCmd.Flags().IntVarP(&editPort, "port", "p", 8080, "Port to run the editor server on")
+	editCmd.Flags().IntVarP(&editPort, "port", "p", 0, "Port to run the editor server on (0 for auto-assign)")
 	editCmd.Flags().BoolVar(&editNoBrowser, "no-browser", false, "Don't open browser automatically")
 
 	rootCmd.AddCommand(editCmd)

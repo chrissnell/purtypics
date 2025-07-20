@@ -52,7 +52,7 @@ const editorHTML = `<!DOCTYPE html>
                             <input type="checkbox" id="gallery-show-locations">
                             Show Photo Locations
                         </label>
-                        <p style="margin-top: 5px; font-size: 12px; color: #666;">Display a map with photo locations at the bottom of gallery pages</p>
+                        <p style="margin-top: 5px; font-size: 12px; color: var(--text-secondary);">Display a map with photo locations at the bottom of gallery pages</p>
                     </div>
                 </form>
             </div>
@@ -124,7 +124,7 @@ const editorHTML = `<!DOCTYPE html>
                                 <input type="text" id="s3-region" class="form-control" placeholder="us-east-1">
                             </div>
                             <div class="form-group">
-                                <p style="margin: 5px 0; font-size: 14px; color: #666;">Set AWS credentials via environment variables:<br>
+                                <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set AWS credentials via environment variables:<br>
                                 <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code></p>
                             </div>
                             <div class="deploy-actions">
@@ -150,7 +150,7 @@ const editorHTML = `<!DOCTYPE html>
                                 <input type="text" id="cf-account" class="form-control" placeholder="023e105f4ecef8ad9ca31a8372d0c353">
                             </div>
                             <div class="form-group">
-                                <p style="margin: 5px 0; font-size: 14px; color: #666;">Set Cloudflare API token via environment variable:<br>
+                                <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set Cloudflare API token via environment variable:<br>
                                 <code>CLOUDFLARE_API_TOKEN</code></p>
                             </div>
                             <div class="deploy-actions">
@@ -235,12 +235,77 @@ const editorHTML = `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- Friendly Deploy Notice -->
+    <div id="deploy-notice" class="deploy-notice-overlay">
+        <div class="deploy-notice-content">
+            <h2>Hold On There, Friend!</h2>
+            <p>Looks like you haven't generated your gallery yet. You'll need to build it first before we can deploy it to the world!</p>
+            <p class="deploy-notice-hint">Just click the <strong>"Generate Gallery"</strong> button in the top-right corner, wait for it to finish, and then you can deploy.</p>
+            <div class="deploy-notice-actions">
+                <button class="btn btn-primary" onclick="hideDeployNotice(); focusGenerateButton()">Got it, let's generate first!</button>
+                <button class="btn btn-secondary" onclick="hideDeployNotice()">I'll do it later</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/editor.js"></script>
 </body>
 </html>`
 
 const editorCSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap');
+
+:root {
+    /* Primary Colors */
+    --primary-orange: #ffaa00;
+    --primary-orange-light: #ffcc44;
+    --primary-orange-dark: #cc8800;
+    --primary-orange-alpha: rgba(255, 170, 0, 0.3);
+    
+    /* Accent Colors */
+    --accent-teal: #00a8cc;
+    --accent-teal-light: #00c9f0;
+    --accent-teal-dark: #0087a3;
+    
+    /* Success/Error/Warning */
+    --success-green: #00cc88;
+    --success-green-dark: #00a66e;
+    --error-red: #cc3333;
+    --error-red-dark: #aa1111;
+    --warning-yellow: #ffcc00;
+    
+    /* Neutral Colors */
+    --neutral-100: #ffffff;
+    --neutral-200: #f8f9fa;
+    --neutral-300: #e9ecef;
+    --neutral-400: #dee2e6;
+    --neutral-500: #adb5bd;
+    --neutral-600: #6c757d;
+    --neutral-700: #495057;
+    --neutral-800: #343a40;
+    --neutral-900: #212529;
+    --neutral-1000: #000000;
+    
+    /* Semantic Colors */
+    --bg-primary: var(--neutral-200);
+    --bg-secondary: var(--neutral-100);
+    --bg-overlay: rgba(0, 0, 0, 0.5);
+    --bg-overlay-dark: rgba(0, 0, 0, 0.8);
+    
+    --text-primary: var(--neutral-900);
+    --text-secondary: var(--neutral-600);
+    --text-light: var(--neutral-100);
+    
+    --border-light: var(--neutral-400);
+    --border-medium: var(--neutral-500);
+    --border-focus: var(--accent-teal);
+    
+    /* Component Specific */
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-medium: rgba(0, 0, 0, 0.2);
+    --shadow-glow-orange: rgba(255, 170, 0, 0.5);
+    --shadow-glow-red: rgba(255, 0, 0, 0.5);
+}
 
 * {
     box-sizing: border-box;
@@ -250,8 +315,8 @@ body {
     font-family: 'Inconsolata', monospace;
     margin: 0;
     padding: 0;
-    background: #f8f9fa;
-    color: #212529;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .container {
@@ -266,12 +331,12 @@ header {
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 1px dotted #17a2b8;
+    border-bottom: 1px dotted var(--accent-teal);
 }
 
 h1 {
     margin: 0;
-    color: #17a2b8;
+    color: var(--accent-teal);
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -283,7 +348,7 @@ h1 {
 }
 
 #saveStatus {
-    color: #17a2b8;
+    color: var(--accent-teal);
     font-size: 14px;
     font-weight: 700;
 }
@@ -302,34 +367,34 @@ h1 {
 }
 
 .btn-primary {
-    background: #17a2b8;
-    color: #FFFFFF;
-    border-color: #17a2b8;
+    background: var(--accent-teal);
+    color: var(--text-light);
+    border-color: var(--accent-teal);
 }
 
 .btn-primary:hover {
-    background: #138496;
-    border-color: #138496;
+    background: var(--accent-teal-dark);
+    border-color: var(--accent-teal-dark);
 }
 
 .btn-secondary {
-    background: #6c757d;
-    color: #FFFFFF;
-    border-color: #6c757d;
+    background: var(--neutral-600);
+    color: var(--text-light);
+    border-color: var(--neutral-600);
 }
 
 .btn-secondary:hover {
-    background: #5a6268;
-    border-color: #5a6268;
+    background: var(--neutral-700);
+    border-color: var(--neutral-700);
 }
 .btn-success {
-    background: #28a745;
-    color: #FFFFFF;
-    border-color: #28a745;
+    background: var(--success-green);
+    color: var(--text-light);
+    border-color: var(--success-green);
 }
 .btn-success:hover {
-    background: #218838;
-    border-color: #218838;
+    background: var(--success-green-dark);
+    border-color: var(--success-green-dark);
 }
 .deploy-section {
     max-width: 600px;
@@ -344,7 +409,7 @@ h1 {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--border-light);
 }
 .deploy-tab-btn {
     padding: 8px 16px;
@@ -355,15 +420,15 @@ h1 {
     font-family: 'Inconsolata', monospace;
     font-weight: 700;
     text-transform: uppercase;
-    color: #6c757d;
+    color: var(--text-secondary);
     transition: all 0.2s;
 }
 .deploy-tab-btn:hover {
-    color: #17a2b8;
+    color: var(--accent-teal);
 }
 .deploy-tab-btn.active {
-    color: #ffaa00;
-    border-bottom-color: #ffaa00;
+    color: var(--primary-orange);
+    border-bottom-color: var(--primary-orange);
 }
 .deploy-pane {
     display: none;
@@ -380,35 +445,35 @@ h1 {
 
 .tab-btn {
     padding: 10px 20px;
-    background: #FFFFFF;
-    border: 1px dotted #dee2e6;
+    background: var(--bg-secondary);
+    border: 1px dotted var(--border-light);
     border-radius: 0;
     cursor: pointer;
     transition: all 0.2s;
     font-family: 'Inconsolata', monospace;
     font-weight: 700;
     text-transform: uppercase;
-    color: #6c757d;
+    color: var(--text-secondary);
 }
 
 .tab-btn:hover {
-    background: #f8f9fa;
-    border-color: #17a2b8;
-    color: #17a2b8;
+    background: var(--bg-primary);
+    border-color: var(--accent-teal);
+    color: var(--accent-teal);
 }
 
 .tab-btn.active {
-    background: #ffaa00;
-    color: #FFFFFF;
-    border-color: #ffaa00;
+    background: var(--primary-orange);
+    color: var(--text-light);
+    border-color: var(--primary-orange);
 }
 
 .tab-pane {
     display: none;
-    background: white;
+    background: var(--bg-secondary);
     padding: 30px;
     border-radius: 0;
-    border: 1px dotted #dee2e6;
+    border: 1px dotted var(--border-light);
 }
 
 .tab-pane.active {
@@ -428,17 +493,17 @@ h1 {
 .form-control {
     width: 100%;
     padding: 8px 12px;
-    border: 1px dotted #ced4da;
+    border: 1px dotted var(--border-light);
     border-radius: 0;
     font-size: 14px;
     font-family: 'Inconsolata', monospace;
-    background: #FFFFFF;
+    background: var(--bg-secondary);
 }
 
 .form-control:focus {
     outline: none;
-    border-color: #17a2b8;
-    background: #f0f8ff;
+    border-color: var(--border-focus);
+    background: var(--neutral-100);
 }
 
 textarea.form-control {
@@ -453,8 +518,8 @@ textarea.form-control {
 }
 
 .album-card, .photo-card {
-    background: #FFFFFF;
-    border: 1px dotted #dee2e6;
+    background: var(--bg-secondary);
+    border: 1px dotted var(--border-light);
     border-radius: 0;
     overflow: hidden;
     cursor: pointer;
@@ -463,8 +528,8 @@ textarea.form-control {
 
 .album-card:hover, .photo-card:hover {
     transform: translateY(-2px);
-    border-color: #17a2b8;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-color: var(--accent-teal);
+    box-shadow: 0 2px 4px var(--shadow-light);
 }
 
 .album-card img, .photo-card img {
@@ -484,7 +549,7 @@ textarea.form-control {
 
 .album-card p, .photo-card p {
     margin: 0;
-    color: #666;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -499,7 +564,7 @@ textarea.form-control {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: var(--bg-overlay);
     z-index: 1000;
 }
 
@@ -510,22 +575,22 @@ textarea.form-control {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.8);
+    background: var(--bg-overlay-dark);
     z-index: 2000;
     justify-content: center;
     align-items: center;
 }
 
 .error-message {
-    background: #8B0000;
-    color: white;
+    background: var(--error-red-dark);
+    color: var(--text-light);
     padding: 40px 60px;
     border-radius: 0;
-    border: 3px solid #FF0000;
+    border: 3px solid var(--error-red);
     max-width: 600px;
     text-align: center;
     font-family: 'Inconsolata', monospace;
-    box-shadow: 0 0 30px rgba(255,0,0,0.5);
+    box-shadow: 0 0 30px var(--shadow-glow-red);
 }
 
 .error-message h2 {
@@ -543,8 +608,8 @@ textarea.form-control {
 
 .error-message button {
     padding: 12px 30px;
-    background: white;
-    color: #8B0000;
+    background: var(--neutral-100);
+    color: var(--error-red-dark);
     border: none;
     font-size: 16px;
     font-weight: 700;
@@ -554,22 +619,100 @@ textarea.form-control {
 }
 
 .error-message button:hover {
-    background: #ffaa00;
-    color: white;
+    background: var(--primary-orange);
+    color: var(--text-light);
     transform: scale(1.05);
+}
+
+/* Friendly Deploy Notice */
+.deploy-notice-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 3000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.deploy-notice-content {
+    background: var(--bg-secondary);
+    padding: 40px;
+    max-width: 550px;
+    text-align: center;
+    font-family: 'Inconsolata', monospace;
+    border: 3px solid var(--primary-orange);
+    box-shadow: 0 0 50px var(--shadow-glow-orange),
+                0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: deployNoticeAppear 0.3s ease-out;
+}
+
+@keyframes deployNoticeAppear {
+    from {
+        transform: scale(0.9) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+
+.deploy-notice-content h2 {
+    margin: 0 0 20px 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary-orange);
+    text-transform: uppercase;
+}
+
+.deploy-notice-content p {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.deploy-notice-hint {
+    background: var(--neutral-200);
+    padding: 15px;
+    border-left: 4px solid var(--primary-orange);
+    font-size: 14px !important;
+}
+
+.deploy-notice-hint strong {
+    color: var(--primary-orange);
+}
+
+.deploy-notice-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.deploy-notice-actions .btn {
+    min-width: 180px;
+    padding: 12px 24px;
+    font-size: 14px;
 }
 
 .modal-content {
     position: relative;
-    background: white;
+    background: var(--bg-secondary);
     max-width: 600px;
     margin: 50px auto;
     padding: 30px;
     border-radius: 0;
-    border: 2px solid #17a2b8;
+    border: 2px solid var(--accent-teal);
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px var(--shadow-light);
 }
 
 .modal-actions {
@@ -605,8 +748,8 @@ textarea.form-control {
 
 .hidden-badge {
     display: inline-block;
-    background: #dc3545;
-    color: white;
+    background: var(--error-red);
+    color: var(--text-light);
     padding: 2px 8px;
     border-radius: 0;
     font-size: 12px;
@@ -621,9 +764,9 @@ textarea.form-control {
     max-height: 300px;
     overflow-y: auto;
     padding: 10px;
-    border: 1px dotted #ced4da;
+    border: 1px dotted var(--border-light);
     border-radius: 0;
-    background: #f8f9fa;
+    background: var(--bg-primary);
 }
 
 .photo-grid-selector .photo-option {
@@ -637,19 +780,19 @@ textarea.form-control {
 
 .photo-grid-selector .photo-option:hover {
     transform: scale(1.05);
-    border-color: #17a2b8;
+    border-color: var(--accent-teal);
 }
 
 .photo-grid-selector .photo-option.selected {
-    border-color: #ffaa00;
-    box-shadow: 0 0 0 2px rgba(255, 170, 0, 0.3);
+    border-color: var(--primary-orange);
+    box-shadow: 0 0 0 2px var(--primary-orange-alpha);
 }
 
 .photo-grid-selector .photo-option img {
     width: 100%;
     height: 80px;
     object-fit: contain;
-    background: #000000;
+    background: var(--neutral-1000);
 }
 
 .photo-grid-selector .photo-option .photo-name {
@@ -658,7 +801,7 @@ textarea.form-control {
     left: 0;
     right: 0;
     background: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--text-light);
     font-size: 10px;
     padding: 2px 4px;
     text-align: center;
@@ -677,9 +820,9 @@ textarea.form-control {
 }
 
 #generateBtn.generating {
-    background: #17a2b8;
-    color: #FFFFFF;
-    border-color: #17a2b8;
+    background: var(--accent-teal);
+    color: var(--text-light);
+    border-color: var(--accent-teal);
 }
 
 #generateBtn .progress-bar {
@@ -688,10 +831,8 @@ textarea.form-control {
     left: 0;
     width: 0%;
     height: 100%;
-    background: linear-gradient(90deg, #138496 0%, #17a2b8 100%);
-    transition: width 0.3s ease;
+    background: var(--accent-teal-light);
     z-index: 0;
-    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 #generateBtn .btn-text {
@@ -902,11 +1043,11 @@ async function loadCoverPhotoOptions(album) {
         });
         
         if (photos.length === 0) {
-            selector.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No photos in this album</div>';
+            selector.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No photos in this album</div>';
         }
     } catch (error) {
         console.error('Error loading cover photo options:', error);
-        selector.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">Error loading photos</div>';
+        selector.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--error-red);">Error loading photos</div>';
     }
 }
 
@@ -959,6 +1100,37 @@ function hideErrorOverlay() {
     overlay.style.display = 'none';
 }
 
+// Show deploy notice
+function showDeployNotice() {
+    const overlay = document.getElementById('deploy-notice');
+    overlay.style.display = 'flex';
+}
+
+// Hide deploy notice
+function hideDeployNotice() {
+    const overlay = document.getElementById('deploy-notice');
+    overlay.style.display = 'none';
+}
+
+// Focus and highlight generate button
+function focusGenerateButton() {
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) {
+        // Add a glow effect to draw attention
+        generateBtn.style.boxShadow = '0 0 20px var(--primary-orange), 0 0 40px var(--primary-orange-alpha)';
+        generateBtn.style.transform = 'scale(1.05)';
+        
+        // Scroll to the button if needed
+        generateBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Remove the glow after a few seconds
+        setTimeout(() => {
+            generateBtn.style.boxShadow = '';
+            generateBtn.style.transform = '';
+        }, 3000);
+    }
+}
+
 // Save all changes
 async function saveAll() {
     const saveBtn = document.getElementById('saveBtn');
@@ -982,8 +1154,8 @@ async function saveAll() {
             saveBtn.textContent = 'Saved!';
             
             // Restore Save button to teal when saved
-            saveBtn.style.background = '#17a2b8';
-            saveBtn.style.borderColor = '#17a2b8';
+            saveBtn.style.background = 'var(--accent-teal)';
+            saveBtn.style.borderColor = 'var(--accent-teal)';
             
             setTimeout(() => {
                 saveBtn.textContent = originalText;
@@ -997,13 +1169,13 @@ async function saveAll() {
         saveBtn.textContent = 'Error!';
         
         // Keep button red on error
-        saveBtn.style.background = '#dc3545';
-        saveBtn.style.borderColor = '#dc3545';
+        saveBtn.style.background = 'var(--error-red)';
+        saveBtn.style.borderColor = 'var(--error-red)';
         
         setTimeout(() => {
             saveBtn.textContent = originalText;
-            saveBtn.style.background = '#AA0000';
-            saveBtn.style.borderColor = '#AA0000';
+            saveBtn.style.background = 'var(--error-red-dark)';
+            saveBtn.style.borderColor = 'var(--error-red-dark)';
             saveBtn.style.transform = '';
         }, 2000);
     } finally {
@@ -1023,8 +1195,8 @@ function scheduleAutoSave() {
     
     // Change Save button to red when there are unsaved changes
     const saveBtn = document.getElementById('saveBtn');
-    saveBtn.style.background = '#AA0000';
-    saveBtn.style.borderColor = '#AA0000';
+    saveBtn.style.background = 'var(--error-red-dark)';
+    saveBtn.style.borderColor = 'var(--error-red-dark)';
     
     // Schedule save after 2 seconds of inactivity
     autoSaveTimer = setTimeout(() => {
@@ -1236,8 +1408,8 @@ async function generateGallery() {
                     setTimeout(() => {
                         generateBtn.classList.remove('generating');
                         generateBtn.innerHTML = 'Gallery Generated!';
-                        generateBtn.style.background = '#215e21';
-                        generateBtn.style.borderColor = '#215e21';
+                        generateBtn.style.background = 'var(--success-green-dark)';
+                        generateBtn.style.borderColor = 'var(--success-green-dark)';
                         
                         setTimeout(() => {
                             generateBtn.innerHTML = 'Generate Gallery';
@@ -1262,8 +1434,8 @@ async function generateGallery() {
         console.error('Error generating gallery:', error);
         generateBtn.classList.remove('generating');
         generateBtn.innerHTML = 'Generation Failed';
-        generateBtn.style.background = '#dc3545';
-        generateBtn.style.borderColor = '#dc3545';
+        generateBtn.style.background = 'var(--error-red)';
+        generateBtn.style.borderColor = 'var(--error-red)';
         
         setTimeout(() => {
             generateBtn.innerHTML = 'Generate Gallery';
@@ -1357,8 +1529,8 @@ async function saveDeployConfig() {
         
         if (response.ok) {
             saveBtn.textContent = 'Configuration Saved!';
-            saveBtn.style.background = '#28a745';
-            saveBtn.style.borderColor = '#28a745';
+            saveBtn.style.background = 'var(--success-green)';
+            saveBtn.style.borderColor = 'var(--success-green)';
             
             setTimeout(() => {
                 saveBtn.textContent = originalText;
@@ -1381,8 +1553,8 @@ async function saveDeployConfig() {
     } catch (error) {
         console.error('Error saving deployment config:', error);
         saveBtn.textContent = 'Save Failed';
-        saveBtn.style.background = '#dc3545';
-        saveBtn.style.borderColor = '#dc3545';
+        saveBtn.style.background = 'var(--error-red)';
+        saveBtn.style.borderColor = 'var(--error-red)';
         
         setTimeout(() => {
             saveBtn.textContent = originalText;
@@ -1429,8 +1601,8 @@ async function deployGallery(dryRun) {
             // For dry runs, just show success
             if (dryRun) {
                 deployBtn.textContent = 'Test Successful!';
-                deployBtn.style.background = '#28a745';
-                deployBtn.style.borderColor = '#28a745';
+                deployBtn.style.background = 'var(--success-green)';
+                deployBtn.style.borderColor = 'var(--success-green)';
                 
                 setTimeout(() => {
                     deployBtn.textContent = originalText;
@@ -1442,7 +1614,7 @@ async function deployGallery(dryRun) {
                 // For actual deployments, show progress
                 deployBtn.style.position = 'relative';
                 deployBtn.style.overflow = 'hidden';
-                deployBtn.innerHTML = '<div class="progress-bar" style="position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: #ffaa00; transition: width 0.3s ease; z-index: 0;"></div><span style="position: relative; z-index: 1;">Deploying...</span>';
+                deployBtn.innerHTML = '<div class="progress-bar" style="position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--primary-orange-light); z-index: 0;"></div><span style="position: relative; z-index: 1;">Deploying...</span>';
                 
                 // Poll for progress
                 const progressBar = deployBtn.querySelector('.progress-bar');
@@ -1462,8 +1634,8 @@ async function deployGallery(dryRun) {
                             progressBar.style.width = '100%';
                             setTimeout(() => {
                                 deployBtn.innerHTML = 'Deploy Complete!';
-                                deployBtn.style.background = '#28a745';
-                                deployBtn.style.borderColor = '#28a745';
+                                deployBtn.style.background = 'var(--success-green)';
+                                deployBtn.style.borderColor = 'var(--success-green)';
                                 
                                 setTimeout(() => {
                                     deployBtn.innerHTML = originalText;
@@ -1507,11 +1679,11 @@ async function deployGallery(dryRun) {
                 deployBtn.style.background = '';
                 deployBtn.style.borderColor = '';
                 deployBtn.disabled = false;
-                showErrorOverlay();
+                showDeployNotice();
             } else {
                 deployBtn.textContent = dryRun ? 'Test Failed' : 'Deploy Failed';
-                deployBtn.style.background = '#dc3545';
-                deployBtn.style.borderColor = '#dc3545';
+                deployBtn.style.background = 'var(--error-red)';
+                deployBtn.style.borderColor = 'var(--error-red)';
                 
                 setTimeout(() => {
                     deployBtn.textContent = originalText;

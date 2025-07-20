@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/cjs/purtypics/pkg/deploy"
@@ -34,6 +35,16 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 		deployType = "cloudflare"
 	} else {
 		http.Error(w, "No deployment configuration found", http.StatusBadRequest)
+		return
+	}
+
+	// Check if output directory exists
+	outputPath := s.OutputPath
+	if outputPath == "" {
+		outputPath = filepath.Join(s.SourcePath, "output")
+	}
+	if _, err := os.Stat(outputPath); err != nil {
+		http.Error(w, "Output directory not found. Please generate the gallery first.", http.StatusBadRequest)
 		return
 	}
 
