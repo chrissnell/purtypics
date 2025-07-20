@@ -46,7 +46,7 @@ The editor allows you to:
 		// Determine metadata file path
 		metadataPath := editMetadata
 		if !filepath.IsAbs(metadataPath) {
-			metadataPath = filepath.Join(editOutput, metadataPath)
+			metadataPath = filepath.Join(editSource, metadataPath)
 		}
 
 		// Create and start the editor server

@@ -8,11 +8,18 @@ import (
 	"strings"
 )
 
+// Breadcrumb represents a single breadcrumb item
+type Breadcrumb struct {
+	Title string
+	URL   string
+}
+
 // HTMLGenerator creates static HTML galleries
 type HTMLGenerator struct {
-	OutputPath string
-	SiteTitle  string
-	BaseURL    string
+	OutputPath    string
+	SiteTitle     string
+	BaseURL       string
+	ShowLocations bool
 }
 
 // Generate creates the complete static site
@@ -99,13 +106,13 @@ func (g *HTMLGenerator) generateIndexPage(albums []Album) error {
 		SiteTitle   string
 		BaseURL     string
 		Content     template.HTML
-		Breadcrumbs bool
+		Breadcrumbs []Breadcrumb
 	}{
-		Title:       "Albums",
+		Title:       g.SiteTitle, // Just the gallery title for index page
 		SiteTitle:   g.SiteTitle,
 		BaseURL:     ".",
 		Content:     template.HTML(contentBuf.String()),
-		Breadcrumbs: false,
+		Breadcrumbs: nil, // No breadcrumbs on index page
 	}
 
 	indexPath := filepath.Join(g.OutputPath, "index.html")
@@ -144,12 +151,14 @@ func (g *HTMLGenerator) generateAlbumPage(album Album) error {
 		}
 	}
 
-	// Check if any photos have GPS data
+	// Check if any photos have GPS data AND if showing locations is enabled
 	hasGPS := false
-	for _, photo := range album.Photos {
-		if photo.EXIF != nil && photo.EXIF.GPS != nil {
-			hasGPS = true
-			break
+	if g.ShowLocations {
+		for _, photo := range album.Photos {
+			if photo.EXIF != nil && photo.EXIF.GPS != nil {
+				hasGPS = true
+				break
+			}
 		}
 	}
 
@@ -173,13 +182,16 @@ func (g *HTMLGenerator) generateAlbumPage(album Album) error {
 		SiteTitle   string
 		BaseURL     string
 		Content     template.HTML
-		Breadcrumbs bool
+		Breadcrumbs []Breadcrumb
 	}{
-		Title:       g.SiteTitle + " :: " + album.Title,
+		Title:       album.Title,
 		SiteTitle:   g.SiteTitle,
 		BaseURL:     "..",
 		Content:     template.HTML(contentBuf.String()),
-		Breadcrumbs: true,
+		Breadcrumbs: []Breadcrumb{
+			{Title: g.SiteTitle, URL: "../"},
+			{Title: album.Title, URL: ""}, // Current page, no link
+		},
 	}
 
 	albumPath := filepath.Join(g.OutputPath, "albums", fmt.Sprintf("%s.html", album.ID))

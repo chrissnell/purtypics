@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cjs/purtypics/pkg/deploy"
 	"github.com/cjs/purtypics/pkg/exif"
 	"github.com/cjs/purtypics/pkg/gallery"
 	"github.com/cjs/purtypics/pkg/metadata"
@@ -34,6 +35,12 @@ type Server struct {
 	genStatus     string
 	genError      string
 	genMutex      sync.RWMutex
+	
+	// Deployment progress tracking
+	deployProgress int
+	deployStatus   string
+	deployError    string
+	deployMutex    sync.RWMutex
 }
 
 // NewServer creates a new editor server
@@ -98,6 +105,9 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 	mux.HandleFunc("/api/save", s.handleSave)
 	mux.HandleFunc("/api/generate", s.handleGenerate)
 	mux.HandleFunc("/api/generate/progress", s.handleGenerateProgress)
+	mux.HandleFunc("/api/deploy-config", s.handleDeployConfig)
+	mux.HandleFunc("/api/deploy", s.handleDeploy)
+	mux.HandleFunc("/api/deploy/progress", s.handleDeployProgress)
 	
 	// Static files
 	mux.HandleFunc("/", s.handleIndex)
@@ -105,6 +115,11 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 	
 	// Serve images
 	mux.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir(s.SourcePath))))
+	
+	// Serve generated gallery
+	if s.OutputPath != "" {
+		mux.Handle("/gallery/", http.StripPrefix("/gallery/", http.FileServer(http.Dir(s.OutputPath))))
+	}
 	
 	// Serve thumbnails (dynamic generation)
 	mux.HandleFunc("/thumbs/", s.handleThumbnails)
@@ -492,4 +507,148 @@ func applyOrientation(img image.Image, orientation int) image.Image {
 		// Unknown orientation, return as-is
 		return img
 	}
+}
+
+// handleDeployConfig handles GET and POST for deployment configuration
+func (s *Server) handleDeployConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		// Load current deployment config from source directory
+		config, err := deploy.LoadConfig(s.SourcePath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(config)
+		
+	case http.MethodPost:
+		// Update deployment config
+		var config deploy.Config
+		if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		
+		if err := deploy.SaveConfig(s.SourcePath, &config); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
+		
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleDeploy triggers a deployment
+func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Parse request
+	var req struct {
+		Target string `json:"target"`
+		DryRun bool   `json:"dry_run"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	// Load deployment config from source directory
+	config, err := deploy.LoadConfig(s.SourcePath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	// Get output path
+	outputPath := s.OutputPath
+	if _, err := os.Stat(outputPath); err != nil {
+		http.Error(w, "Output directory not found. Please generate the gallery first.", http.StatusBadRequest)
+		return
+	}
+	
+	// Execute deployment based on target
+	switch req.Target {
+	case "rsync":
+		if config.Rsync == nil {
+			http.Error(w, "Rsync configuration not found", http.StatusBadRequest)
+			return
+		}
+		
+		config.Rsync.DryRun = req.DryRun
+		deployer := deploy.NewRsyncDeployer(config.Rsync, outputPath)
+		
+		// Reset deployment progress
+		s.deployMutex.Lock()
+		s.deployProgress = 0
+		s.deployStatus = "running"
+		s.deployError = ""
+		s.deployMutex.Unlock()
+		
+		// Run deployment in background
+		go func() {
+			// Create a progress callback
+			progressFn := func(percent int) {
+				s.deployMutex.Lock()
+				s.deployProgress = percent
+				s.deployMutex.Unlock()
+			}
+			
+			if err := deployer.DeployWithProgress(progressFn); err != nil {
+				s.deployMutex.Lock()
+				s.deployStatus = "error"
+				s.deployError = err.Error()
+				s.deployMutex.Unlock()
+				fmt.Printf("Deployment error: %v\n", err)
+			} else {
+				s.deployMutex.Lock()
+				s.deployProgress = 100
+				s.deployStatus = "completed"
+				s.deployMutex.Unlock()
+			}
+		}()
+		
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "started",
+			"target": deployer.GetInfo(),
+		})
+		
+	default:
+		http.Error(w, "Unsupported deployment target", http.StatusBadRequest)
+	}
+}
+
+// handleDeployProgress returns the current deployment progress
+func (s *Server) handleDeployProgress(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	s.deployMutex.RLock()
+	progress := s.deployProgress
+	status := s.deployStatus
+	deployError := s.deployError
+	s.deployMutex.RUnlock()
+	
+	response := map[string]interface{}{
+		"progress": progress,
+		"status":   status,
+	}
+	
+	if deployError != "" {
+		response["error"] = deployError
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

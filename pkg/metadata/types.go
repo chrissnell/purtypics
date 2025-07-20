@@ -6,12 +6,13 @@ import (
 
 // GalleryMetadata represents the overall gallery configuration
 type GalleryMetadata struct {
-	Title       string                     `yaml:"title" json:"title"`
-	Description string                     `yaml:"description" json:"description"`
-	Author      string                     `yaml:"author" json:"author"`
-	Copyright   string                     `yaml:"copyright" json:"copyright"`
-	Albums      map[string]*AlbumMetadata  `yaml:"albums" json:"albums"`
-	Photos      map[string]*PhotoMetadata  `yaml:"photos" json:"photos"`
+	Title         string                     `yaml:"title" json:"title"`
+	Description   string                     `yaml:"description" json:"description"`
+	Author        string                     `yaml:"author" json:"author"`
+	Copyright     string                     `yaml:"copyright" json:"copyright"`
+	ShowLocations bool                       `yaml:"show_locations" json:"show_locations"`
+	Albums        map[string]*AlbumMetadata  `yaml:"albums" json:"albums"`
+	Photos        map[string]*PhotoMetadata  `yaml:"photos" json:"photos"`
 }
 
 // AlbumMetadata represents metadata for a single album

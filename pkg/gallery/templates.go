@@ -309,19 +309,61 @@ main {
 .map-section {
   padding: 2rem;
   border-top: 1px dotted var(--border-color);
+  background: #f8f9fa;
+}
+
+.map-section-inner {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  position: relative;
 }
 
 .map-section h2 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
-  font-weight: 300;
+  font-weight: 500;
+  color: #17a2b8;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
 }
 
 .photo-map {
   width: 100%;
   height: 500px;
-  border: 1px solid var(--border-color);
+  border: 1px dotted var(--border-color);
   background: #f0f0f0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content {
+  font-family: var(--font-main);
+  font-size: 14px;
+  padding: 10px;
+}
+
+.leaflet-popup-content strong {
+  color: #17a2b8;
+}
+
+.leaflet-popup-content img {
+  display: block;
+  object-fit: cover;
+  border: 1px dotted var(--border-color);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0;
+  border: 1px dotted var(--border-color);
+}
+
+.leaflet-popup-tip {
+  background: white;
+  border: 1px dotted var(--border-color);
+  border-top: none;
+  border-right: none;
 }
 
 /* EXIF Info */
@@ -615,6 +657,14 @@ function initMasonry() {
         stagger: 30,
         resize: true
       });
+      
+      // Adjust map width after layout is complete
+      msnry.on('layoutComplete', function() {
+        adjustMapWidth();
+      });
+      
+      // Also adjust immediately after initial layout
+      msnry.layout();
     });
   }
 
@@ -634,6 +684,30 @@ function initMasonry() {
   }
 }
 
+// Adjust map section width to match photo grid full width
+function adjustMapWidth() {
+  const masonryContainer = document.querySelector('.masonry-container');
+  const mapSectionInner = document.querySelector('.map-section-inner');
+  const photoItems = document.querySelectorAll('.photo-item');
+  
+  if (masonryContainer && mapSectionInner && photoItems.length > 0) {
+    // Calculate the full width from leftmost to rightmost photo
+    let minLeft = Infinity;
+    let maxRight = -Infinity;
+    
+    photoItems.forEach(item => {
+      const rect = item.getBoundingClientRect();
+      minLeft = Math.min(minLeft, rect.left);
+      maxRight = Math.max(maxRight, rect.right);
+    });
+    
+    const fullWidth = maxRight - minLeft;
+    
+    // Set the map width
+    mapSectionInner.style.width = fullWidth + 'px';
+  }
+}
+
 // Initialize map if GPS data exists
 function initMap() {
   const mapElement = document.getElementById('map');
@@ -645,11 +719,14 @@ function initMap() {
     const lat = parseFloat(photo.dataset.lat);
     const lng = parseFloat(photo.dataset.lng);
     if (!isNaN(lat) && !isNaN(lng)) {
+      const img = photo.querySelector('img');
+      const videoPoster = photo.querySelector('.video-poster');
       photosWithGPS.push({
         lat: lat,
         lng: lng,
-        title: photo.querySelector('img').alt,
-        element: photo
+        title: (img || videoPoster).alt,
+        element: photo,
+        isVideo: photo.dataset.video === 'true'
       });
     }
   });
@@ -659,10 +736,56 @@ function initMap() {
     return;
   }
   
-  // For now, show a simple message
-  // In production, you'd integrate with a mapping library like Leaflet
-  mapElement.innerHTML = '<p style="text-align: center; padding: 2rem; color: #666;">' + 
-    photosWithGPS.length + ' photos have location data. Map integration coming soon!</p>';
+  // Initialize Leaflet map
+  const map = L.map('map').setView([photosWithGPS[0].lat, photosWithGPS[0].lng], 10);
+  
+  // Add OpenStreetMap tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  
+  // Create markers for each photo
+  const markers = [];
+  photosWithGPS.forEach(photo => {
+    // Get the thumbnail URL from the photo element
+    const img = photo.element.querySelector('img');
+    const videoPoster = photo.element.querySelector('.video-poster');
+    const thumbSrc = (img || videoPoster).src;
+    
+    // Create popup content with thumbnail
+    const popupContent = ` + "`" + `
+      <div style="text-align: center; min-width: 200px;">
+        <img src="${thumbSrc}" alt="${photo.title}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 8px;">
+        <div><strong>${photo.title}</strong>${photo.isVideo ? ' (Video)' : ''}</div>
+      </div>
+    ` + "`" + `;
+    
+    const marker = L.marker([photo.lat, photo.lng])
+      .bindPopup(popupContent, {
+        maxWidth: 250,
+        minWidth: 200
+      })
+      .addTo(map);
+    
+    // Add click handler to scroll to photo when marker is clicked
+    marker.on('popupopen', () => {
+      photo.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight the photo briefly
+      photo.element.style.transition = 'outline 0.3s';
+      photo.element.style.outline = '3px solid #17a2b8';
+      setTimeout(() => {
+        photo.element.style.outline = '';
+      }, 2000);
+    });
+    
+    markers.push(marker);
+  });
+  
+  // Fit map to show all markers
+  if (photosWithGPS.length > 1) {
+    const group = new L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.1));
+  }
 }
 
 // Initialize everything
@@ -672,6 +795,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initLazyLoad();
   initMasonry();
   initMap();
+  
+  // Adjust map width on window resize with debounce
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      adjustMapWidth();
+    }, 250);
+  });
 });
 `
 
@@ -681,13 +813,15 @@ const baseTemplate = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.Title}} - {{.SiteTitle}}</title>
+  <title>{{if ne .Title .SiteTitle}}{{.SiteTitle}} :: {{.Title}}{{else}}{{.Title}}{{end}}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&family=Roboto+Slab:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{if .BaseURL}}{{.BaseURL}}/{{end}}css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
   <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <header class="header">
@@ -696,8 +830,14 @@ const baseTemplate = `<!DOCTYPE html>
   
   {{if .Breadcrumbs}}
   <nav class="breadcrumbs">
-    <a href="{{.BaseURL}}/">Albums</a> ::
-    <span>{{.Title}}</span>
+    {{range $i, $crumb := .Breadcrumbs}}
+      {{if $i}} :: {{end}}
+      {{if $crumb.URL}}
+        <a href="{{$crumb.URL}}">{{$crumb.Title}}</a>
+      {{else}}
+        <span>{{$crumb.Title}}</span>
+      {{end}}
+    {{end}}
   </nav>
   {{end}}
   
@@ -786,8 +926,10 @@ const albumContent = `<div class="masonry-container">
 
 {{if .HasGPS}}
 <div class="map-section">
-  <h2>Photo Locations</h2>
-  <div id="map" class="photo-map"></div>
+  <div class="map-section-inner">
+    <h2>Photo Locations</h2>
+    <div id="map" class="photo-map"></div>
+  </div>
 </div>
 {{end}}
 `

@@ -5,16 +5,17 @@ const editorHTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purtypics Metadata Editor</title>
+    <title>PurtyPics Gallery Editor</title>
     <link rel="stylesheet" href="/static/editor.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Purtypics Metadata Editor</h1>
+            <h1>PurtyPics Gallery Editor</h1>
             <div class="actions">
                 <button id="saveBtn" class="btn btn-primary">Save All Changes</button>
                 <button id="generateBtn" class="btn btn-secondary">Generate Gallery</button>
+                <button id="viewBtn" class="btn btn-secondary">View Gallery (Local)</button>
             </div>
         </header>
 
@@ -22,6 +23,7 @@ const editorHTML = `<!DOCTYPE html>
             <button class="tab-btn active" data-tab="gallery">Gallery</button>
             <button class="tab-btn" data-tab="albums">Albums</button>
             <button class="tab-btn" data-tab="photos">Photos</button>
+            <button class="tab-btn" data-tab="deploy">Deploy</button>
         </div>
 
         <div class="tab-content">
@@ -45,6 +47,13 @@ const editorHTML = `<!DOCTYPE html>
                         <label for="gallery-copyright">Copyright</label>
                         <input type="text" id="gallery-copyright" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="gallery-show-locations">
+                            Show Photo Locations
+                        </label>
+                        <p style="margin-top: 5px; font-size: 12px; color: #666;">Display a map with photo locations at the bottom of gallery pages</p>
+                    </div>
                 </form>
             </div>
 
@@ -64,6 +73,94 @@ const editorHTML = `<!DOCTYPE html>
                     </select>
                 </div>
                 <div id="photos-list" class="photos-grid"></div>
+            </div>
+
+            <!-- Deploy Tab -->
+            <div id="deploy-tab" class="tab-pane">
+                <h2>Deployment Settings</h2>
+                <div class="deploy-tabs">
+                    <button class="deploy-tab-btn active" data-deploy-tab="rsync">Rsync over SSH</button>
+                    <button class="deploy-tab-btn" data-deploy-tab="s3">AWS S3</button>
+                    <button class="deploy-tab-btn" data-deploy-tab="cloudflare">Cloudflare Pages</button>
+                </div>
+                
+                <!-- Rsync Configuration -->
+                <div id="rsync-deploy-pane" class="deploy-pane active">
+                    <div class="deploy-section">
+                        <h3>Rsync Configuration</h3>
+                        <form id="rsync-form">
+                            <div class="form-group">
+                                <label for="rsync-host">Host (user@hostname)</label>
+                                <input type="text" id="rsync-host" class="form-control" placeholder="user@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="rsync-path">Remote Path</label>
+                                <input type="text" id="rsync-path" class="form-control" placeholder="/var/www/html/gallery">
+                            </div>
+                            <div class="form-group">
+                                <label for="rsync-port">SSH Port</label>
+                                <input type="number" id="rsync-port" class="form-control" value="22">
+                            </div>
+                            <div class="deploy-actions">
+                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection (Dry Run)</button>
+                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- S3 Configuration -->
+                <div id="s3-deploy-pane" class="deploy-pane">
+                    <div class="deploy-section">
+                        <h3>AWS S3 Configuration</h3>
+                        <form id="s3-form">
+                            <div class="form-group">
+                                <label for="s3-bucket">Bucket Name</label>
+                                <input type="text" id="s3-bucket" class="form-control" placeholder="my-gallery-bucket">
+                            </div>
+                            <div class="form-group">
+                                <label for="s3-region">Region</label>
+                                <input type="text" id="s3-region" class="form-control" placeholder="us-east-1">
+                            </div>
+                            <div class="form-group">
+                                <p style="margin: 5px 0; font-size: 14px; color: #666;">Set AWS credentials via environment variables:<br>
+                                <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code></p>
+                            </div>
+                            <div class="deploy-actions">
+                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
+                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Cloudflare Pages Configuration -->
+                <div id="cloudflare-deploy-pane" class="deploy-pane">
+                    <div class="deploy-section">
+                        <h3>Cloudflare Pages Configuration</h3>
+                        <form id="cloudflare-form">
+                            <div class="form-group">
+                                <label for="cf-project">Project Name</label>
+                                <input type="text" id="cf-project" class="form-control" placeholder="my-gallery">
+                            </div>
+                            <div class="form-group">
+                                <label for="cf-account">Account ID</label>
+                                <input type="text" id="cf-account" class="form-control" placeholder="023e105f4ecef8ad9ca31a8372d0c353">
+                            </div>
+                            <div class="form-group">
+                                <p style="margin: 5px 0; font-size: 14px; color: #666;">Set Cloudflare API token via environment variable:<br>
+                                <code>CLOUDFLARE_API_TOKEN</code></p>
+                            </div>
+                            <div class="deploy-actions">
+                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
+                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -126,6 +223,15 @@ const editorHTML = `<!DOCTYPE html>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Error Overlay -->
+    <div id="error-overlay" class="error-overlay">
+        <div class="error-message">
+            <h2>Output Directory Not Found</h2>
+            <p>Please generate the gallery first before attempting to deploy. Click the "Generate Gallery" button to create the output directory and build your gallery.</p>
+            <button onclick="hideErrorOverlay()">OK</button>
         </div>
     </div>
 
@@ -215,6 +321,55 @@ h1 {
 .btn-secondary:hover {
     background: #5a6268;
     border-color: #5a6268;
+}
+.btn-success {
+    background: #28a745;
+    color: #FFFFFF;
+    border-color: #28a745;
+}
+.btn-success:hover {
+    background: #218838;
+    border-color: #218838;
+}
+.deploy-section {
+    max-width: 600px;
+}
+.deploy-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.deploy-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #dee2e6;
+}
+.deploy-tab-btn {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-family: 'Inconsolata', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+.deploy-tab-btn:hover {
+    color: #17a2b8;
+}
+.deploy-tab-btn.active {
+    color: #ffaa00;
+    border-bottom-color: #ffaa00;
+}
+.deploy-pane {
+    display: none;
+}
+.deploy-pane.active {
+    display: block;
 }
 
 .tabs {
@@ -346,6 +501,62 @@ textarea.form-control {
     height: 100%;
     background: rgba(0,0,0,0.5);
     z-index: 1000;
+}
+
+.error-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.error-message {
+    background: #8B0000;
+    color: white;
+    padding: 40px 60px;
+    border-radius: 0;
+    border: 3px solid #FF0000;
+    max-width: 600px;
+    text-align: center;
+    font-family: 'Inconsolata', monospace;
+    box-shadow: 0 0 30px rgba(255,0,0,0.5);
+}
+
+.error-message h2 {
+    margin: 0 0 20px 0;
+    font-size: 28px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.error-message p {
+    margin: 0 0 30px 0;
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+.error-message button {
+    padding: 12px 30px;
+    background: white;
+    color: #8B0000;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.error-message button:hover {
+    background: #ffaa00;
+    color: white;
+    transform: scale(1.05);
 }
 
 .modal-content {
@@ -494,6 +705,7 @@ let metadata = {
     description: '',
     author: '',
     copyright: '',
+    show_locations: false,
     albums: {},
     photos: {}
 };
@@ -528,6 +740,7 @@ function updateGalleryForm() {
     document.getElementById('gallery-description').value = metadata.description || '';
     document.getElementById('gallery-author').value = metadata.author || '';
     document.getElementById('gallery-copyright').value = metadata.copyright || '';
+    document.getElementById('gallery-show-locations').checked = metadata.show_locations || false;
 }
 
 // Render albums grid
@@ -562,12 +775,25 @@ function populateAlbumSelect() {
     const select = document.getElementById('photo-album-select');
     select.innerHTML = '<option value="">Choose an album...</option>';
     
-    albums.forEach(album => {
+    let firstAlbumPath = null;
+    
+    albums.forEach((album, index) => {
         const option = document.createElement('option');
         option.value = album.path;
         option.textContent = album.title;
         select.appendChild(option);
+        
+        // Store the first album path
+        if (index === 0) {
+            firstAlbumPath = album.path;
+        }
     });
+    
+    // Automatically select and load the first album
+    if (firstAlbumPath && albums.length > 0) {
+        select.value = firstAlbumPath;
+        loadPhotos(firstAlbumPath);
+    }
 }
 
 // Load photos for selected album
@@ -720,6 +946,18 @@ function closePhotoModal() {
     document.getElementById('photo-modal').style.display = 'none';
 }
 
+// Show error overlay
+function showErrorOverlay() {
+    const overlay = document.getElementById('error-overlay');
+    overlay.style.display = 'flex';
+}
+
+// Hide error overlay
+function hideErrorOverlay() {
+    const overlay = document.getElementById('error-overlay');
+    overlay.style.display = 'none';
+}
+
 // Save all changes
 async function saveAll() {
     const saveBtn = document.getElementById('saveBtn');
@@ -805,6 +1043,11 @@ window.addEventListener('beforeunload', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     
+    // Load deployment config if deploy tab is initially active
+    if (document.querySelector('.tab-btn.active[data-tab="deploy"]')) {
+        loadDeployConfig();
+    }
+    
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -817,13 +1060,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update panes
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
             document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Load deployment config when switching to deploy tab
+            if (tabName === 'deploy') {
+                loadDeployConfig();
+            }
         });
     });
     
     // Gallery form updates
     document.getElementById('gallery-form').addEventListener('input', (e) => {
-        const field = e.target.id.replace('gallery-', '');
-        metadata[field] = e.target.value;
+        const field = e.target.id.replace('gallery-', '').replace(/-/g, '_');
+        if (e.target.type === 'checkbox') {
+            metadata[field] = e.target.checked;
+        } else {
+            metadata[field] = e.target.value;
+        }
         scheduleAutoSave();
     });
     
@@ -891,6 +1143,35 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generateGallery);
+    
+    // View Gallery button
+    document.getElementById('viewBtn').addEventListener('click', viewGallery);
+    
+    // Deployment buttons - attach to all deployment save/test/deploy buttons
+    document.querySelectorAll('.deploy-save-btn').forEach(btn => {
+        btn.addEventListener('click', saveDeployConfig);
+    });
+    document.querySelectorAll('.deploy-test-btn').forEach(btn => {
+        btn.addEventListener('click', () => deployGallery(true));
+    });
+    document.querySelectorAll('.deploy-deploy-btn').forEach(btn => {
+        btn.addEventListener('click', () => deployGallery(false));
+    });
+    
+    // Deploy tab switching
+    document.querySelectorAll('.deploy-tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabName = e.target.getAttribute('data-deploy-tab');
+            
+            // Update active tab button
+            document.querySelectorAll('.deploy-tab-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            // Update active pane
+            document.querySelectorAll('.deploy-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(tabName + '-deploy-pane').classList.add('active');
+        });
+    });
     
     // Modal close on background click
     document.getElementById('album-modal').addEventListener('click', (e) => {
@@ -982,6 +1263,268 @@ async function generateGallery() {
             generateBtn.style.background = '';
             generateBtn.style.borderColor = '';
             generateBtn.disabled = false;
+        }, 3000);
+    }
+}
+
+// View generated gallery
+function viewGallery() {
+    // Open the gallery served through the editor server
+    window.open('/gallery/', '_blank');
+}
+
+// Load deployment configuration
+async function loadDeployConfig() {
+    try {
+        const response = await fetch('/api/deploy-config');
+        if (!response.ok) {
+            console.error('Failed to load deploy config:', response.status, response.statusText);
+            return;
+        }
+        
+        const config = await response.json();
+        
+        // Load rsync configuration
+        if (config.rsync) {
+            document.getElementById('rsync-host').value = config.rsync.host || '';
+            document.getElementById('rsync-path').value = config.rsync.path || '';
+            document.getElementById('rsync-port').value = config.rsync.port || 22;
+        }
+        
+        // Load S3 configuration
+        if (config.s3) {
+            document.getElementById('s3-bucket').value = config.s3.bucket || '';
+            document.getElementById('s3-region').value = config.s3.region || '';
+            // Don't load AWS credentials - they come from environment
+        }
+        
+        // Load Cloudflare configuration
+        if (config.cloudflare) {
+            document.getElementById('cf-project').value = config.cloudflare.project || '';
+            document.getElementById('cf-account').value = config.cloudflare.account_id || '';
+            // Don't load API token - it comes from environment
+        }
+    } catch (error) {
+        console.error('Error loading deployment config:', error);
+    }
+}
+
+// Save deployment configuration
+async function saveDeployConfig() {
+    // Get the active deployment tab to determine which config to save
+    const activeTab = document.querySelector('.deploy-tab-btn.active').getAttribute('data-deploy-tab');
+    
+    const config = {
+        rsync: {
+            host: document.getElementById('rsync-host').value,
+            path: document.getElementById('rsync-path').value,
+            port: parseInt(document.getElementById('rsync-port').value) || 22
+        },
+        s3: {
+            bucket: document.getElementById('s3-bucket').value,
+            region: document.getElementById('s3-region').value
+            // AWS credentials should come from environment variables
+        },
+        cloudflare: {
+            project: document.getElementById('cf-project').value,
+            account_id: document.getElementById('cf-account').value
+            // API token should come from environment variables
+        }
+    };
+    
+    // Get the save button for the active tab
+    const saveBtn = document.querySelector('#' + activeTab + '-deploy-pane .btn-primary');
+    const originalText = saveBtn.textContent;
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    try {
+        const response = await fetch('/api/deploy-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
+        
+        if (response.ok) {
+            saveBtn.textContent = 'Configuration Saved!';
+            saveBtn.style.background = '#28a745';
+            saveBtn.style.borderColor = '#28a745';
+            
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '';
+                saveBtn.style.borderColor = '';
+                saveBtn.disabled = false;
+            }, 2000);
+        } else {
+            saveBtn.textContent = 'Save Failed';
+            saveBtn.style.background = '#dc3545';
+            saveBtn.style.borderColor = '#dc3545';
+            
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '';
+                saveBtn.style.borderColor = '';
+                saveBtn.disabled = false;
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Error saving deployment config:', error);
+        saveBtn.textContent = 'Save Failed';
+        saveBtn.style.background = '#dc3545';
+        saveBtn.style.borderColor = '#dc3545';
+        
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '';
+            saveBtn.style.borderColor = '';
+            saveBtn.disabled = false;
+        }, 2000);
+    }
+}
+
+// Deploy gallery
+async function deployGallery(dryRun) {
+    // Get the active deployment tab
+    const activeTab = document.querySelector('.deploy-tab-btn.active').getAttribute('data-deploy-tab');
+    
+    // Get the appropriate button based on the active tab and action
+    const buttonClass = dryRun ? '.deploy-test-btn' : '.deploy-deploy-btn';
+    const deployBtn = document.querySelector('#' + activeTab + '-deploy-pane ' + buttonClass);
+    
+    if (!deployBtn) {
+        console.error('Deploy button not found');
+        return;
+    }
+    
+    const originalText = deployBtn.textContent;
+    deployBtn.textContent = dryRun ? 'Testing...' : 'Deploying...';
+    deployBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/deploy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                target: activeTab,
+                dry_run: dryRun
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // For dry runs, just show success
+            if (dryRun) {
+                deployBtn.textContent = 'Test Successful!';
+                deployBtn.style.background = '#28a745';
+                deployBtn.style.borderColor = '#28a745';
+                
+                setTimeout(() => {
+                    deployBtn.textContent = originalText;
+                    deployBtn.style.background = '';
+                    deployBtn.style.borderColor = '';
+                    deployBtn.disabled = false;
+                }, 3000);
+            } else {
+                // For actual deployments, show progress
+                deployBtn.style.position = 'relative';
+                deployBtn.style.overflow = 'hidden';
+                deployBtn.innerHTML = '<div class="progress-bar" style="position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: #ffaa00; transition: width 0.3s ease; z-index: 0;"></div><span style="position: relative; z-index: 1;">Deploying...</span>';
+                
+                // Poll for progress
+                const progressBar = deployBtn.querySelector('.progress-bar');
+                let progress = 0;
+                
+                const pollProgress = async () => {
+                    try {
+                        const progressResponse = await fetch('/api/deploy/progress');
+                        const data = await progressResponse.json();
+                        
+                        progress = data.progress || 0;
+                        progressBar.style.width = progress + '%';
+                        
+                        if (data.status === 'running') {
+                            setTimeout(pollProgress, 500);
+                        } else if (data.status === 'completed') {
+                            progressBar.style.width = '100%';
+                            setTimeout(() => {
+                                deployBtn.innerHTML = 'Deploy Complete!';
+                                deployBtn.style.background = '#28a745';
+                                deployBtn.style.borderColor = '#28a745';
+                                
+                                setTimeout(() => {
+                                    deployBtn.innerHTML = originalText;
+                                    deployBtn.style.background = '';
+                                    deployBtn.style.borderColor = '';
+                                    deployBtn.style.position = '';
+                                    deployBtn.style.overflow = '';
+                                    deployBtn.disabled = false;
+                                }, 3000);
+                            }, 500);
+                        } else if (data.status === 'error') {
+                            throw new Error(data.error || 'Deployment failed');
+                        }
+                    } catch (error) {
+                        console.error('Error polling progress:', error);
+                        deployBtn.innerHTML = 'Deploy Failed';
+                        deployBtn.style.background = '#dc3545';
+                        deployBtn.style.borderColor = '#dc3545';
+                        
+                        setTimeout(() => {
+                            deployBtn.innerHTML = originalText;
+                            deployBtn.style.background = '';
+                            deployBtn.style.borderColor = '';
+                            deployBtn.style.position = '';
+                            deployBtn.style.overflow = '';
+                            deployBtn.disabled = false;
+                        }, 3000);
+                    }
+                };
+                
+                // Start polling after a short delay
+                setTimeout(pollProgress, 500);
+            }
+        } else {
+            const error = await response.text();
+            console.error('Deployment error:', error);
+            
+            // Check if it's the output directory error
+            if (error.includes('Output directory not found')) {
+                deployBtn.textContent = originalText;
+                deployBtn.style.background = '';
+                deployBtn.style.borderColor = '';
+                deployBtn.disabled = false;
+                showErrorOverlay();
+            } else {
+                deployBtn.textContent = dryRun ? 'Test Failed' : 'Deploy Failed';
+                deployBtn.style.background = '#dc3545';
+                deployBtn.style.borderColor = '#dc3545';
+                
+                setTimeout(() => {
+                    deployBtn.textContent = originalText;
+                    deployBtn.style.background = '';
+                    deployBtn.style.borderColor = '';
+                    deployBtn.disabled = false;
+                }, 3000);
+            }
+        }
+    } catch (error) {
+        console.error('Error deploying:', error);
+        deployBtn.textContent = 'Error!';
+        deployBtn.style.background = '#dc3545';
+        deployBtn.style.borderColor = '#dc3545';
+        
+        setTimeout(() => {
+            deployBtn.textContent = originalText;
+            deployBtn.style.background = '';
+            deployBtn.style.borderColor = '';
+            deployBtn.disabled = false;
         }, 3000);
     }
 }

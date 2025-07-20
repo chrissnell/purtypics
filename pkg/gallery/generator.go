@@ -136,14 +136,25 @@ func (g *Generator) Generate() error {
 	// Sort albums by date (newest first) before generating HTML
 	SortAlbumsByDate(albums)
 
+	// Report HTML generation progress
+	if g.ProgressCallback != nil {
+		g.ProgressCallback(0, 1, "Generating HTML pages")
+	}
+
 	// Generate HTML site
 	htmlGen := &HTMLGenerator{
-		OutputPath: g.OutputPath,
-		SiteTitle:  g.SiteTitle,
-		BaseURL:    g.BaseURL,
+		OutputPath:    g.OutputPath,
+		SiteTitle:     g.SiteTitle,
+		BaseURL:       g.BaseURL,
+		ShowLocations: g.metadata.ShowLocations,
 	}
 	if err := htmlGen.Generate(albums); err != nil {
 		return fmt.Errorf("failed to generate HTML site: %w", err)
+	}
+
+	// Report completion
+	if g.ProgressCallback != nil {
+		g.ProgressCallback(1, 1, "Gallery generation complete")
 	}
 
 	return nil
@@ -153,6 +164,12 @@ func (g *Generator) processAlbum(album *Album) error {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	errors := make([]error, 0)
+	processedCount := 0
+
+	// Report photo processing start
+	if g.ProgressCallback != nil {
+		g.ProgressCallback(0, len(album.Photos), fmt.Sprintf("Processing photos in %s", album.Title))
+	}
 
 	// Limit concurrent processing
 	sem := make(chan struct{}, 4)
@@ -231,6 +248,15 @@ func (g *Generator) processAlbum(album *Album) error {
 				}
 				photo.Thumbnails = thumbs
 			}
+			
+			// Report progress
+			mu.Lock()
+			processedCount++
+			if g.ProgressCallback != nil {
+				g.ProgressCallback(processedCount, len(album.Photos), 
+					fmt.Sprintf("Processing %s: %s", album.Title, photo.Filename))
+			}
+			mu.Unlock()
 			
 			if g.Verbose {
 				fmt.Printf("  ✓ %s\n", photo.Filename)
