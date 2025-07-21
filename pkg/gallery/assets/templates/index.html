@@ -12,23 +12,42 @@
         <a href="{{.ID}}/index.html" class="album-link">
             <div class="album-cover">
                 {{if .Photos}}
-                {{with index .Photos 0}}
+                {{$album := .}}
+                {{$coverPhoto := ""}}
+                {{if $album.CoverPhoto}}
+                    {{range $album.Photos}}
+                        {{if eq .Filename $album.CoverPhoto}}
+                            {{$coverPhoto = .}}
+                        {{end}}
+                    {{end}}
+                {{end}}
+                {{if not $coverPhoto}}
+                    {{$coverPhoto = index $album.Photos 0}}
+                {{end}}
+                {{with $coverPhoto}}
                 {{if index .Thumbnails "medium"}}
                 <img src=".{{index .Thumbnails "medium"}}" 
-                     alt="{{$.Title}}" 
+                     alt="{{$album.Title}}" 
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
                 {{else if index .Thumbnails "small"}}
                 <img src=".{{index .Thumbnails "small"}}" 
-                     alt="{{$.Title}}" 
+                     alt="{{$album.Title}}" 
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                {{else if .IsVideo}}
+                    {{if index .Thumbnails "poster"}}
+                    <img src=".{{index .Thumbnails "poster"}}" 
+                         alt="{{$album.Title}}" 
+                         loading="lazy"
+                         onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                    {{end}}
                 {{end}}
                 {{end}}
                 {{end}}
                 <div class="album-info-overlay">
                     <h2 class="album-title">{{.Title}}</h2>
-                    <div class="album-count">{{len .Photos}} photos</div>
+                    <div class="album-count">{{len .Photos}} {{if eq (len .Photos) 1}}photo{{else}}photos{{end}}</div>
                 </div>
             </div>
         </a>

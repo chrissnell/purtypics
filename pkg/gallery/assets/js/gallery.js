@@ -94,14 +94,38 @@ function initVideoHover() {
             
             // Show video and hide play button
             video.style.display = 'block';
-            video.style.opacity = '1';
-            poster.style.opacity = '0';
-            video.play().catch(e => {
-                console.error('Video play failed:', e);
-            });
+            setTimeout(() => {
+                video.style.opacity = '1';
+                poster.style.opacity = '0';
+            }, 10);
             
-            if (playButton) {
-                playButton.style.opacity = '0';
+            // Ensure video is muted (required for autoplay)
+            video.muted = true;
+            
+            // Try to play the video
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // Autoplay started successfully
+                    if (playButton) {
+                        playButton.style.opacity = '0';
+                    }
+                }).catch(error => {
+                    console.error('Video autoplay failed:', error);
+                    // Revert to poster on autoplay failure
+                    video.style.opacity = '0';
+                    poster.style.opacity = '1';
+                    
+                    // Try once more after user interaction
+                    if (error.name === 'NotAllowedError') {
+                        // Add click handler to play on click
+                        videoContainer.addEventListener('click', function playOnClick() {
+                            video.play().catch(e => console.error('Video play on click failed:', e));
+                            videoContainer.removeEventListener('click', playOnClick);
+                        }, { once: true });
+                    }
+                });
             }
         });
         

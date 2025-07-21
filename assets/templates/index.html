@@ -28,7 +28,7 @@
                 {{end}}
                 <div class="album-info-overlay">
                     <h2 class="album-title">{{.Title}}</h2>
-                    <div class="album-count">{{len .Photos}} photos</div>
+                    <div class="album-count">{{len .Photos}} {{if eq (len .Photos) 1}}photo{{else}}photos{{end}}</div>
                 </div>
             </div>
         </a>

@@ -1059,7 +1059,7 @@ const indexContent = `<div class="album-grid-container">
       {{end}}
       <h2 class="album-title">{{.Title}}</h2>
       {{if .Description}}<p class="album-description">{{.Description}}</p>{{end}}
-      <p class="album-count">{{len .Photos}} photos</p>
+      <p class="album-count">{{len .Photos}} {{if eq (len .Photos) 1}}photo{{else}}photos{{end}}</p>
     </a>
     {{end}}
   </div>

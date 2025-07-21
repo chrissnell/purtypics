@@ -104,7 +104,7 @@ const editorHTML = `<!DOCTYPE html>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
                                 <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection (Dry Run)</button>
-                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
                     </div>
@@ -130,7 +130,7 @@ const editorHTML = `<!DOCTYPE html>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
                                 <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
-                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
                     </div>
@@ -156,7 +156,7 @@ const editorHTML = `<!DOCTYPE html>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
                                 <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
-                                <button type="button" class="btn btn-success deploy-deploy-btn">Deploy Now</button>
+                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
                     </div>
@@ -396,6 +396,50 @@ h1 {
 .btn-success:hover {
     background: var(--success-green-dark);
     border-color: var(--success-green-dark);
+}
+.btn-deploy {
+    background: var(--error-red);
+    color: var(--text-light);
+    border-color: var(--error-red);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+.btn-deploy:hover {
+    background: var(--error-red-dark);
+    border-color: var(--error-red-dark);
+}
+.btn-deploy.deploying {
+    background: var(--warning-yellow);
+    border-color: var(--warning-yellow);
+    color: var(--neutral-900);
+}
+.btn-deploy.deployed {
+    background: var(--success-green);
+    border-color: var(--success-green);
+    color: var(--text-light);
+}
+.btn-deploy .progress-wipe {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: var(--warning-yellow);
+    transition: left 0.5s ease-in-out;
+    z-index: 1;
+}
+.btn-deploy.deploying .progress-wipe {
+    left: 0;
+}
+.btn-deploy span {
+    position: relative;
+    z-index: 2;
+}
+.btn-deploy.error {
+    background: var(--error-red);
+    border-color: var(--error-red);
+    color: var(--text-light);
 }
 .deploy-section {
     max-width: 600px;
@@ -904,7 +948,7 @@ function renderAlbums() {
             <img src="/images/${albumName}/${coverImage}" alt="${album.title}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22250%22 height=%22200%22 viewBox=%220 0 250 200%22><rect fill=%22%23ddd%22 width=%22250%22 height=%22200%22/><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">
             <div class="album-card-info">
                 <h3>${album.title}${album.hidden ? '<span class="hidden-badge">Hidden</span>' : ''}</h3>
-                <p>${album.photoCount} photos</p>
+                <p>${album.photoCount} ${album.photoCount === 1 ? 'photo' : 'photos'}</p>
                 ${album.description ? '<p>' + album.description + '</p>' : ''}
             </div>
         ` + "`" + `;
@@ -1581,8 +1625,12 @@ async function deployGallery(dryRun) {
         return;
     }
     
-    const originalText = deployBtn.textContent;
-    deployBtn.textContent = dryRun ? 'Testing...' : 'Deploying...';
+    const originalText = deployBtn.querySelector('span').textContent;
+    const buttonSpan = deployBtn.querySelector('span');
+    
+    // Start the animation
+    deployBtn.classList.add('deploying');
+    buttonSpan.textContent = dryRun ? 'Testing...' : 'Deploying...';
     deployBtn.disabled = true;
     
     try {
@@ -1602,24 +1650,18 @@ async function deployGallery(dryRun) {
             
             // For dry runs, just show success
             if (dryRun) {
-                deployBtn.textContent = 'Test Successful!';
-                deployBtn.style.background = 'var(--success-green)';
-                deployBtn.style.borderColor = 'var(--success-green)';
+                deployBtn.classList.remove('deploying');
+                deployBtn.classList.add('deployed');
+                buttonSpan.textContent = 'Test Successful!';
                 
                 setTimeout(() => {
-                    deployBtn.textContent = originalText;
-                    deployBtn.style.background = '';
-                    deployBtn.style.borderColor = '';
+                    deployBtn.classList.remove('deployed');
+                    buttonSpan.textContent = originalText;
                     deployBtn.disabled = false;
                 }, 3000);
             } else {
                 // For actual deployments, show progress
-                deployBtn.style.position = 'relative';
-                deployBtn.style.overflow = 'hidden';
-                deployBtn.innerHTML = '<div class="progress-bar" style="position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--primary-orange-light); z-index: 0;"></div><span style="position: relative; z-index: 1;">Deploying...</span>';
-                
                 // Poll for progress
-                const progressBar = deployBtn.querySelector('.progress-bar');
                 let progress = 0;
                 
                 const pollProgress = async () => {
@@ -1628,41 +1670,34 @@ async function deployGallery(dryRun) {
                         const data = await progressResponse.json();
                         
                         progress = data.progress || 0;
-                        progressBar.style.width = progress + '%';
+                        // Update progress text
+                        buttonSpan.textContent = 'Deploying... ' + Math.round(progress) + '%';
                         
                         if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'idle') {
                             setTimeout(pollProgress, 500);
                         } else if (data.status === 'completed') {
-                            progressBar.style.width = '100%';
+                            // Transition to success state
+                            deployBtn.classList.remove('deploying');
+                            deployBtn.classList.add('deployed');
+                            buttonSpan.textContent = 'Deploy Complete!';
+                            
                             setTimeout(() => {
-                                deployBtn.innerHTML = 'Deploy Complete!';
-                                deployBtn.style.background = 'var(--success-green)';
-                                deployBtn.style.borderColor = 'var(--success-green)';
-                                
-                                setTimeout(() => {
-                                    deployBtn.innerHTML = originalText;
-                                    deployBtn.style.background = '';
-                                    deployBtn.style.borderColor = '';
-                                    deployBtn.style.position = '';
-                                    deployBtn.style.overflow = '';
-                                    deployBtn.disabled = false;
-                                }, 3000);
-                            }, 500);
+                                deployBtn.classList.remove('deployed');
+                                buttonSpan.textContent = originalText;
+                                deployBtn.disabled = false;
+                            }, 3000);
                         } else if (data.status === 'error') {
                             throw new Error(data.error || 'Deployment failed');
                         }
                     } catch (error) {
                         console.error('Error polling progress:', error);
-                        deployBtn.innerHTML = 'Deploy Failed';
-                        deployBtn.style.background = '#dc3545';
-                        deployBtn.style.borderColor = '#dc3545';
+                        deployBtn.classList.remove('deploying');
+                        deployBtn.classList.add('error');
+                        buttonSpan.textContent = 'Deploy Failed';
                         
                         setTimeout(() => {
-                            deployBtn.innerHTML = originalText;
-                            deployBtn.style.background = '';
-                            deployBtn.style.borderColor = '';
-                            deployBtn.style.position = '';
-                            deployBtn.style.overflow = '';
+                            deployBtn.classList.remove('error');
+                            buttonSpan.textContent = originalText;
                             deployBtn.disabled = false;
                         }, 3000);
                     }
@@ -1677,34 +1712,31 @@ async function deployGallery(dryRun) {
             
             // Check if it's the output directory error
             if (error.includes('Output directory not found')) {
-                deployBtn.textContent = originalText;
-                deployBtn.style.background = '';
-                deployBtn.style.borderColor = '';
+                deployBtn.classList.remove('deploying');
+                buttonSpan.textContent = originalText;
                 deployBtn.disabled = false;
                 showDeployNotice();
             } else {
-                deployBtn.textContent = dryRun ? 'Test Failed' : 'Deploy Failed';
-                deployBtn.style.background = 'var(--error-red)';
-                deployBtn.style.borderColor = 'var(--error-red)';
+                deployBtn.classList.remove('deploying');
+                deployBtn.classList.add('error');
+                buttonSpan.textContent = dryRun ? 'Test Failed' : 'Deploy Failed';
                 
                 setTimeout(() => {
-                    deployBtn.textContent = originalText;
-                    deployBtn.style.background = '';
-                    deployBtn.style.borderColor = '';
+                    deployBtn.classList.remove('error');
+                    buttonSpan.textContent = originalText;
                     deployBtn.disabled = false;
                 }, 3000);
             }
         }
     } catch (error) {
         console.error('Error deploying:', error);
-        deployBtn.textContent = 'Error!';
-        deployBtn.style.background = '#dc3545';
-        deployBtn.style.borderColor = '#dc3545';
+        deployBtn.classList.remove('deploying');
+        deployBtn.classList.add('error');
+        buttonSpan.textContent = 'Error!';
         
         setTimeout(() => {
-            deployBtn.textContent = originalText;
-            deployBtn.style.background = '';
-            deployBtn.style.borderColor = '';
+            deployBtn.classList.remove('error');
+            buttonSpan.textContent = originalText;
             deployBtn.disabled = false;
         }, 3000);
     }
