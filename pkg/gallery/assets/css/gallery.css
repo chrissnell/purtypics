@@ -13,7 +13,7 @@
     --color-lavender: #8E7DBE;
     
     /* Applied colors */
-    --primary-color: #E85D75; /* More saturated rose */
+    --primary-color: #DB0026; /* More saturated rose */
     --secondary-color: var(--color-lavender);
     --accent-color: var(--color-sage);
     --highlight-color: var(--color-peach);
@@ -337,21 +337,10 @@ a {
     transition: opacity 0.3s ease;
 }
 
-/* Hide video controls overlay on hover */
-.video-preview::-webkit-media-controls {
-    display: none !important;
-}
-
-.video-preview::-webkit-media-controls-enclosure {
-    display: none !important;
-}
-
-.video-preview::-webkit-media-controls-panel {
-    display: none !important;
-}
-
-.video-preview::-moz-media-controls {
-    display: none !important;
+/* Hide video controls but allow interaction */
+.video-preview::-webkit-media-controls-overlay-play-button,
+.video-preview::-webkit-media-controls-play-button {
+    display: none;
 }
 
 .play-button {
