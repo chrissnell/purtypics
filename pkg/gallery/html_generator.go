@@ -48,14 +48,31 @@ func (g *Generator) GenerateHTMLFromTemplates(albums []Album) error {
 		return fmt.Errorf("failed to copy static assets: %w", err)
 	}
 
+	// Create gallery data
+	galleryData := &GalleryData{
+		Title:       g.SiteTitle,
+		Description: "",
+		Albums:      albums,
+	}
+
+	// Use metadata if available
+	if g.metadata != nil {
+		if g.metadata.Title != "" {
+			galleryData.Title = g.metadata.Title
+		}
+		galleryData.Description = g.metadata.Description
+		galleryData.Author = g.metadata.Author
+		galleryData.Copyright = g.metadata.Copyright
+	}
+
 	// Generate index page
-	if err := g.generateIndexPage(tmpl, albums); err != nil {
+	if err := g.generateIndexPage(tmpl, galleryData); err != nil {
 		return fmt.Errorf("failed to generate index page: %w", err)
 	}
 
 	// Generate album pages
 	for i := range albums {
-		if err := g.generateAlbumPage(tmpl, &albums[i]); err != nil {
+		if err := g.generateAlbumPage(tmpl, &albums[i], galleryData); err != nil {
 			return fmt.Errorf("failed to generate album page for %s: %w", albums[i].ID, err)
 		}
 	}
@@ -141,23 +158,7 @@ func (g *Generator) copyStaticAssets() error {
 }
 
 // generateIndexPage generates the gallery index page
-func (g *Generator) generateIndexPage(tmpl *template.Template, albums []Album) error {
-	// Create gallery data
-	galleryData := &GalleryData{
-		Title:       g.SiteTitle,
-		Description: "",
-		Albums:      albums,
-	}
-
-	// Use metadata if available
-	if g.metadata != nil {
-		if g.metadata.Title != "" {
-			galleryData.Title = g.metadata.Title
-		}
-		galleryData.Description = g.metadata.Description
-		galleryData.Author = g.metadata.Author
-		galleryData.Copyright = g.metadata.Copyright
-	}
+func (g *Generator) generateIndexPage(tmpl *template.Template, galleryData *GalleryData) error {
 
 	// Render the index content
 	var contentBuf bytes.Buffer
@@ -184,7 +185,7 @@ func (g *Generator) generateIndexPage(tmpl *template.Template, albums []Album) e
 }
 
 // generateAlbumPage generates a single album page
-func (g *Generator) generateAlbumPage(tmpl *template.Template, album *Album) error {
+func (g *Generator) generateAlbumPage(tmpl *template.Template, album *Album, galleryData *GalleryData) error {
 	// Create album directory
 	albumDir := filepath.Join(g.OutputPath, album.ID)
 	if err := os.MkdirAll(albumDir, 0755); err != nil {
@@ -194,7 +195,8 @@ func (g *Generator) generateAlbumPage(tmpl *template.Template, album *Album) err
 	// Render the album content
 	var contentBuf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&contentBuf, "album.html", HTMLTemplateData{
-		Album: album,
+		Album:   album,
+		Gallery: galleryData,
 	}); err != nil {
 		return fmt.Errorf("failed to render album content: %w", err)
 	}

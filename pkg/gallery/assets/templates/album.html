@@ -1,6 +1,8 @@
 <header class="album-header">
     <nav class="breadcrumb">
-        <a href="../index.html" class="back-link">← Back to Gallery</a>
+        <a href="../" class="gallery-link">{{.Gallery.Title}}</a>
+        <span class="breadcrumb-separator"> :: </span>
+        <span class="album-name">{{.Album.Title}}</span>
     </nav>
     <h1 class="album-title">{{.Album.Title}}</h1>
     {{if .Album.Description}}
