@@ -3,29 +3,50 @@ export function initVideoHover() {
   const videos = document.querySelectorAll('.video-item');
   
   videos.forEach(item => {
-    const poster = item.querySelector('.video-poster');
-    const video = item.querySelector('.video-preview');
+    const videoContainer = item.querySelector('.video-container');
+    if (!videoContainer) return;
     
-    if (!video) return;
+    const poster = videoContainer.querySelector('.video-poster');
+    const video = videoContainer.querySelector('.video-preview');
+    const playButton = videoContainer.querySelector('.play-button');
     
-    item.addEventListener('mouseenter', () => {
+    if (!video || !poster) return;
+    
+    // Preload on first interaction
+    let hasPreloaded = false;
+    
+    videoContainer.addEventListener('mouseenter', () => {
+      // Preload the video on first hover
+      if (!hasPreloaded) {
+        video.preload = 'metadata';
+        hasPreloaded = true;
+      }
+      
+      // Show video and hide play button
+      video.style.display = 'block';
       video.style.opacity = '1';
+      poster.style.opacity = '0';
       video.play().catch(e => {
         console.error('Video play failed:', e);
       });
-      const playButton = item.querySelector('.play-button');
+      
       if (playButton) {
-        playButton.style.display = 'none';
+        playButton.style.opacity = '0';
       }
     });
     
-    item.addEventListener('mouseleave', () => {
+    videoContainer.addEventListener('mouseleave', () => {
+      // Hide video and show poster
       video.style.opacity = '0';
+      poster.style.opacity = '1';
       video.pause();
       video.currentTime = 0;
-      const playButton = item.querySelector('.play-button');
+      
+      // Reset play button after transition
       if (playButton) {
-        playButton.style.display = '';
+        setTimeout(() => {
+          playButton.style.opacity = '1';
+        }, 300);
       }
     });
   });

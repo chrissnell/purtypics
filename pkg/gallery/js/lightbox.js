@@ -11,7 +11,7 @@ export class Lightbox {
   }
 
   init() {
-    this.photos = Array.from(document.querySelectorAll('.photo-item'));
+    this.photos = Array.from(document.querySelectorAll('.photo-card'));
     this.createLightbox();
     this.bindEvents();
   }
@@ -75,10 +75,13 @@ export class Lightbox {
     
     // Photo click events
     this.photos.forEach((photo, index) => {
-      photo.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.open(index);
-      });
+      const link = photo.querySelector('.photo-link');
+      if (link) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.open(index);
+        });
+      }
     });
   }
 
@@ -104,16 +107,21 @@ export class Lightbox {
   }
 
   showPhoto(photo) {
-    const fullSrc = photo.dataset.fullSrc;
-    const title = photo.dataset.title || '';
-    const description = photo.dataset.description || '';
+    const link = photo.querySelector('.photo-link');
     const isVideo = photo.classList.contains('video-item');
+    const fullSrc = link ? link.getAttribute('href') : '';
+    
+    // Extract title and description from photo element
+    const photoImg = photo.querySelector('img');
+    const photoTitle = photo.querySelector('.photo-title');
+    const title = photoTitle ? photoTitle.textContent : (photoImg ? photoImg.getAttribute('alt') : '');
+    const description = ''; // We can add description support later if needed
     
     // Show/hide media elements
     if (isVideo) {
       this.img.style.display = 'none';
       this.video.style.display = 'block';
-      this.video.src = photo.dataset.videoSrc;
+      this.video.src = photo.dataset.videoSrc || fullSrc;
     } else {
       this.video.style.display = 'none';
       this.video.pause();
