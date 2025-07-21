@@ -49,3 +49,6 @@ go.work.sum
 
 # Vendor (if using vendor mode)
 /vendor/
+
+# tools
+.serena/
