@@ -1,0 +1,65 @@
+/* Custom CSS - Users can override gallery styles here */
+
+/* Example customizations: */
+
+/* Warm Earth Tones
+:root {
+    --color-dusty-rose: #C08B7C;
+    --color-peach: #E5B299;
+    --color-cream: #F5E6D3;
+    --color-sage: #A4B494;
+    --color-lavender: #B5A7C6;
+}
+*/
+
+/* Cool Pastels
+:root {
+    --color-dusty-rose: #E8B4BC;
+    --color-peach: #B6D7E2;
+    --color-cream: #F3F3F3;
+    --color-sage: #C3E9D0;
+    --color-lavender: #D4C5E8;
+}
+*/
+
+/* Monochrome Elegance
+:root {
+    --color-dusty-rose: #999999;
+    --color-peach: #BBBBBB;
+    --color-cream: #F5F5F5;
+    --color-sage: #777777;
+    --color-lavender: #888888;
+    --border-color: #DDDDDD;
+}
+*/
+
+/* Bold and Bright
+:root {
+    --color-dusty-rose: #E91E63;
+    --color-peach: #FF9800;
+    --color-cream: #FFF9C4;
+    --color-sage: #4CAF50;
+    --color-lavender: #9C27B0;
+}
+*/
+
+/* Change to solid borders instead of dotted
+:root {
+    --border-style: solid;
+}
+*/
+
+/* Even tinier dots for borders
+:root {
+    --border-width: 0.5px;
+}
+*/
+
+/* Adjust font weights
+:root {
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 600;
+}
+*/

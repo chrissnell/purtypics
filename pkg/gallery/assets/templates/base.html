@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <meta name="description" content="{{.Description}}">
+    <link rel="stylesheet" href="{{.BasePath}}/css/gallery.css">
+    <link rel="stylesheet" href="{{.BasePath}}/css/custom.css">
+</head>
+<body>
+    <div class="gallery-container">
+        {{.Content}}
+    </div>
+    
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+    <script src="{{.BasePath}}/js/gallery.js"></script>
+</body>
+</html>

@@ -70,36 +70,75 @@ main {
 
 /* Masonry Grid - Using Masonry.js */
 .masonry-container {
-  padding: 2rem;
+  padding: 0 2rem 2rem 2rem;
   text-align: left; /* Left-aligns the masonry grid */
 }
 
 .masonry-grid {
-  margin: 0;
-  display: inline-block; /* Allows fitWidth to work properly */
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Album grid container */
 .album-grid {
   margin: 0;
-  display: inline-block;
+  width: 100%;
 }
 
-/* Photo items for masonry.js - fixed width for automatic column adjustment */
+/* Grid sizer for Masonry - defines column width */
+.grid-sizer,
 .photo-item {
-  width: 490px;
-  margin-bottom: 3px;
+  width: 20%; /* 5 columns on desktop */
 }
 
+/* Album sizer not needed - albums use CSS Grid */
+
+.photo-item {
+  margin-bottom: 3px;
+  float: left;
+}
+
+/* Reduce margin on mobile for better space usage */
 @media (max-width: 600px) {
   .photo-item {
-    width: calc(50% - 1.5px);
+    margin-bottom: 2px;
   }
 }
 
-@media (max-width: 400px) {
+/* Responsive column widths */
+@media (max-width: 1200px) {
+  .grid-sizer,
   .photo-item {
-    width: 100%;
+    width: 25%; /* 4 columns on medium screens */
+  }
+}
+
+@media (max-width: 900px) {
+  .grid-sizer,
+  .photo-item {
+    width: 33.333%; /* 3 columns on tablets */
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-sizer,
+  .photo-item {
+    width: 50%; /* 2 columns on large phones */
+  }
+}
+
+/* Specific handling for iPhone Pro Max and similar devices */
+@media (min-width: 414px) and (max-width: 600px) {
+  .grid-sizer,
+  .photo-item {
+    width: 50%; /* Ensure 2 columns on iPhone Pro Max */
+  }
+}
+
+@media (max-width: 380px) {
+  .grid-sizer,
+  .photo-item {
+    width: 100%; /* 1 column on small phones */
   }
 }
 
@@ -114,6 +153,27 @@ main {
   display: block;
 }
 
+/* Aspect ratio container to prevent reflow */
+.photo-item .aspect-ratio-box {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.photo-item .aspect-ratio-box::before {
+  content: "";
+  display: block;
+  padding-top: var(--aspect-ratio, 100%);
+}
+
+.photo-item .aspect-ratio-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
 .photo-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -123,6 +183,13 @@ main {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.photo-item .aspect-ratio-content img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .photo-title {
@@ -150,7 +217,7 @@ main {
 }
 
 .album-item {
-  width: 380px;
+  width: calc(25% - 15px); /* 4 columns with gap */
   margin-bottom: 20px;
   border: 1px dotted var(--border-color);
   padding: 1rem;
@@ -158,15 +225,33 @@ main {
   display: block;
 }
 
+@media (max-width: 1200px) {
+  .album-item {
+    width: calc(33.333% - 14px); /* 3 columns with gap */
+  }
+}
+
 @media (max-width: 800px) {
   .album-item {
-    width: calc(50% - 10px);
+    width: calc(50% - 10px); /* 2 columns with gap */
+  }
+  
+  .album-thumbnail {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
   }
 }
 
 @media (max-width: 400px) {
   .album-item {
+    width: 100%; /* 1 column */
+  }
+  
+  .album-thumbnail {
     width: 100%;
+    height: auto;
+    object-fit: cover;
   }
 }
 
@@ -266,6 +351,31 @@ main {
   margin-top: 0.5rem;
 }
 
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 3rem;
+  color: white;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+  padding: 1rem;
+  user-select: none;
+}
+
+.lightbox-nav:hover {
+  opacity: 1;
+}
+
+.lightbox-prev {
+  left: 2rem;
+}
+
+.lightbox-next {
+  right: 2rem;
+}
+
 /* Video styling */
 .video-container {
   position: relative;
@@ -273,10 +383,19 @@ main {
   overflow: hidden;
 }
 
+.aspect-ratio-content .video-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
 .video-poster,
 .video-preview {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
@@ -385,14 +504,7 @@ main {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .masonry-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    grid-gap: 1rem;
-  }
-  
-  .album-grid {
-    grid-template-columns: 1fr;
-  }
+  /* Remove conflicting grid styles for masonry */
   
   .header {
     padding: 1rem;
@@ -403,8 +515,14 @@ main {
   }
   
   .masonry-container {
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .album-grid-container {
     padding: 1rem;
   }
+  
+  /* Let Masonry handle the layout */
 }`
 
 // JavaScript for the gallery
@@ -451,6 +569,8 @@ function initLightbox() {
   lightbox.innerHTML = ` + "`" + `
     <div class="lightbox-content">
       <span class="lightbox-close">&times;</span>
+      <div class="lightbox-nav lightbox-prev">&lt;</div>
+      <div class="lightbox-nav lightbox-next">&gt;</div>
       <div class="lightbox-image-container">
         <img src="" alt="" style="display:none;">
         <video controls style="display:none; max-width: 100%; max-height: calc(100vh - 8rem);" preload="metadata"></video>
@@ -466,66 +586,78 @@ function initLightbox() {
   const lightboxInfo = lightbox.querySelector('.lightbox-info');
   const lightboxExif = lightbox.querySelector('.lightbox-exif');
   const closeBtn = lightbox.querySelector('.lightbox-close');
+  const prevBtn = lightbox.querySelector('.lightbox-prev');
+  const nextBtn = lightbox.querySelector('.lightbox-next');
   
-  photos.forEach(photo => {
+  let currentPhotoIndex = 0;
+  
+  const showPhoto = (index) => {
+    const photo = photos[index];
+    if (!photo) return;
+    
+    currentPhotoIndex = index;
+    
+    const isVideo = photo.dataset.video === 'true';
+    const title = photo.querySelector('img').alt;
+    
+    // Get EXIF data from photo element
+    const camera = photo.dataset.camera;
+    const datetime = photo.dataset.datetime;
+    
+    lightboxInfo.textContent = title;
+    
+    if (isVideo) {
+      // Show video
+      const videoSrc = photo.dataset.videoSrc;
+      lightboxVideo.src = videoSrc;
+      lightboxVideo.style.display = 'block';
+      lightboxImg.style.display = 'none';
+      
+      // Pause any playing preview videos
+      const previewVideo = photo.querySelector('.video-preview');
+      if (previewVideo) {
+        previewVideo.pause();
+      }
+    } else {
+      // Show image
+      const img = photo.querySelector('img');
+      const fullSrc = img.dataset.full || img.src;
+      lightboxImg.src = fullSrc;
+      lightboxImg.style.display = 'block';
+      lightboxVideo.style.display = 'none';
+    }
+    
+    // Show EXIF info if available
+    if (camera || datetime) {
+      let exifText = '';
+      
+      // Format camera info
+      if (camera && datetime) {
+        // Clean up camera string - remove extra quotes
+        const cleanCamera = camera.replace(/"/g, '');
+        exifText = ` + "`" + `Taken with ${cleanCamera} on ${datetime}` + "`" + `;
+      } else if (camera) {
+        const cleanCamera = camera.replace(/"/g, '');
+        exifText = ` + "`" + `Taken with ${cleanCamera}` + "`" + `;
+      } else if (datetime) {
+        exifText = ` + "`" + `Taken on ${datetime}` + "`" + `;
+      }
+      
+      lightboxExif.textContent = exifText;
+      lightboxExif.style.display = 'block';
+    } else {
+      lightboxExif.style.display = 'none';
+    }
+    
+    lightbox.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+  
+  photos.forEach((photo, index) => {
     photo.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
-      const isVideo = photo.dataset.video === 'true';
-      const title = photo.querySelector('img').alt;
-      
-      // Get EXIF data from photo element
-      const camera = photo.dataset.camera;
-      const datetime = photo.dataset.datetime;
-      
-      lightboxInfo.textContent = title;
-      
-      if (isVideo) {
-        // Show video
-        const videoSrc = photo.dataset.videoSrc;
-        lightboxVideo.src = videoSrc;
-        lightboxVideo.style.display = 'block';
-        lightboxImg.style.display = 'none';
-        
-        // Pause any playing preview videos
-        const previewVideo = photo.querySelector('.video-preview');
-        if (previewVideo) {
-          previewVideo.pause();
-        }
-      } else {
-        // Show image
-        const img = photo.querySelector('img');
-        const fullSrc = img.dataset.full || img.src;
-        lightboxImg.src = fullSrc;
-        lightboxImg.style.display = 'block';
-        lightboxVideo.style.display = 'none';
-      }
-      
-      // Show EXIF info if available
-      if (camera || datetime) {
-        let exifText = '';
-        
-        // Format camera info
-        if (camera && datetime) {
-          // Clean up camera string - remove extra quotes
-          const cleanCamera = camera.replace(/"/g, '');
-          exifText = ` + "`" + `Taken with ${cleanCamera} on ${datetime}` + "`" + `;
-        } else if (camera) {
-          const cleanCamera = camera.replace(/"/g, '');
-          exifText = ` + "`" + `Taken with ${cleanCamera}` + "`" + `;
-        } else if (datetime) {
-          exifText = ` + "`" + `Taken on ${datetime}` + "`" + `;
-        }
-        
-        lightboxExif.textContent = exifText;
-        lightboxExif.style.display = 'block';
-      } else {
-        lightboxExif.style.display = 'none';
-      }
-      
-      lightbox.style.display = 'block';
-      document.body.style.overflow = 'hidden';
+      showPhoto(index);
     });
   });
   
@@ -540,7 +672,23 @@ function initLightbox() {
     }
   };
   
+  const navigatePhoto = (direction) => {
+    let newIndex = currentPhotoIndex + direction;
+    
+    // Wrap around at the ends
+    if (newIndex < 0) {
+      newIndex = photos.length - 1;
+    } else if (newIndex >= photos.length) {
+      newIndex = 0;
+    }
+    
+    showPhoto(newIndex);
+  };
+  
   closeBtn.addEventListener('click', closeLightbox);
+  prevBtn.addEventListener('click', () => navigatePhoto(-1));
+  nextBtn.addEventListener('click', () => navigatePhoto(1));
+  
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox || e.target === lightbox.querySelector('.lightbox-content')) {
       closeLightbox();
@@ -549,8 +697,18 @@ function initLightbox() {
   
   // Keyboard navigation
   document.addEventListener('keydown', (e) => {
-    if (lightbox.style.display === 'block' && e.key === 'Escape') {
-      closeLightbox();
+    if (lightbox.style.display === 'block') {
+      switch(e.key) {
+        case 'Escape':
+          closeLightbox();
+          break;
+        case 'ArrowLeft':
+          navigatePhoto(-1);
+          break;
+        case 'ArrowRight':
+          navigatePhoto(1);
+          break;
+      }
     }
   });
 }
@@ -648,22 +806,35 @@ function initMasonry() {
   // Photo gallery masonry
   const photoGrid = document.querySelector('.masonry-grid');
   if (photoGrid) {
+    // Add grid-sizer element if it doesn't exist
+    if (!photoGrid.querySelector('.grid-sizer')) {
+      const gridSizer = document.createElement('div');
+      gridSizer.className = 'grid-sizer';
+      photoGrid.prepend(gridSizer);
+    }
+    
     imagesLoaded(photoGrid, function() {
+      // Use smaller gutter on mobile devices
+      const gutterSize = window.innerWidth <= 600 ? 2 : 3;
+      
       const msnry = new Masonry(photoGrid, {
         itemSelector: '.photo-item',
-        columnWidth: '.photo-item',
-        gutter: 3,
-        fitWidth: true,
-        stagger: 30,
-        resize: true
+        columnWidth: '.grid-sizer',
+        percentPosition: true,
+        gutter: gutterSize,
+        fitWidth: false,
+        stagger: 30
       });
+      
+      // Store masonry instance globally for resize handling
+      window.photoMsnry = msnry;
       
       // Adjust map width after layout is complete
       msnry.on('layoutComplete', function() {
         adjustMapWidth();
       });
       
-      // Also adjust immediately after initial layout
+      // Layout after all images loaded
       msnry.layout();
     });
   }
@@ -675,10 +846,8 @@ function initMasonry() {
       const msnry = new Masonry(albumGrid, {
         itemSelector: '.album-item',
         columnWidth: '.album-item',
-        gutter: 3,
-        fitWidth: true,
-        stagger: 30,
-        resize: true
+        percentPosition: true,
+        gutter: 0
       });
     });
   }
@@ -795,15 +964,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initLazyLoad();
   initMasonry();
   initMap();
-  
-  // Adjust map width on window resize with debounce
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      adjustMapWidth();
-    }, 250);
-  });
+});
+
+// Re-initialize Masonry on window resize with debounce
+let resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    if (window.photoMsnry) {
+      // Update gutter size based on new window width
+      const newGutterSize = window.innerWidth <= 600 ? 2 : 3;
+      window.photoMsnry.gutter = newGutterSize;
+      window.photoMsnry.layout();
+    }
+  }, 250);
 });
 `
 
@@ -868,10 +1042,19 @@ const indexContent = `<div class="album-grid-container">
         {{$coverPhoto = index $album.Photos 0}}
       {{end}}
       {{with $coverPhoto}}
+      {{if index .Thumbnails "medium"}}
       <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "medium"}}" 
            alt="{{.Title}}" 
            class="album-thumbnail"
            loading="lazy">
+      {{else if index .Thumbnails "small"}}
+      <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "small"}}" 
+           alt="{{.Title}}" 
+           class="album-thumbnail"
+           loading="lazy">
+      {{else}}
+      <div class="album-thumbnail" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; height: 200px; color: #999;">No thumbnail</div>
+      {{end}}
       {{end}}
       {{end}}
       <h2 class="album-title">{{.Title}}</h2>
@@ -885,16 +1068,23 @@ const indexContent = `<div class="album-grid-container">
 
 const albumContent = `<div class="masonry-container">
   <div class="masonry-grid">
+    <div class="grid-sizer"></div>
     {{range .Album.Photos}}
-    <div class="photo-item {{if .IsVideo}}video-item{{end}}" data-aspect="{{.AspectRatio}}" 
+    <div class="photo-item {{if .IsVideo}}video-item{{end}} {{if gt .Height .Width}}portrait{{end}}" 
+         data-aspect="{{.AspectRatio}}" 
          data-lat="{{if .EXIF}}{{if .EXIF.GPS}}{{.EXIF.GPS.Latitude}}{{end}}{{end}}"
          data-lng="{{if .EXIF}}{{if .EXIF.GPS}}{{.EXIF.GPS.Longitude}}{{end}}{{end}}"
          data-camera="{{if .EXIF}}{{.EXIF.Camera}}{{end}}"
          data-datetime="{{if .EXIF}}{{.EXIF.DateTime.Format "Jan 2, 2006 at 3:04PM"}}{{end}}"
          data-video="{{if .IsVideo}}true{{end}}"
-         data-video-src="{{if .IsVideo}}{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{.VideoPath}}{{end}}">
-      {{if .IsVideo}}
-      <div class="video-container">
+         data-video-src="{{if .IsVideo}}{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{.VideoPath}}{{end}}"
+         data-width="{{.Width}}"
+         data-height="{{.Height}}"
+         style="--aspect-ratio: {{if and .Width .Height}}{{if gt .Width 0}}calc({{.Height}} / {{.Width}} * 100%){{else}}100%{{end}}{{else}}100%{{end}}">
+      <div class="aspect-ratio-box">
+        <div class="aspect-ratio-content">
+          {{if .IsVideo}}
+          <div class="video-container">
         <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "poster"}}" 
              alt="{{.Title}}" 
              loading="lazy"
@@ -911,13 +1101,15 @@ const albumContent = `<div class="masonry-container">
             <path d="M19 16L32 24L19 32V16Z" fill="white"/>
           </svg>
         </div>
-      </div>
-      {{else}}
-      <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "medium"}}" 
+          </div>
+          {{else}}
+          <img src="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "medium"}}" 
            data-full="{{if $.BaseURL}}{{$.BaseURL}}{{end}}{{index .Thumbnails "full"}}" 
            alt="{{.Title}}" 
-           loading="lazy">
-      {{end}}
+               loading="lazy">
+          {{end}}
+        </div>
+      </div>
       <div class="photo-title">{{.Title}}</div>
     </div>
     {{end}}

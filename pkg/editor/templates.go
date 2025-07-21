@@ -171,6 +171,7 @@ const editorHTML = `<!DOCTYPE html>
             <h3>Edit Album</h3>
             <form id="album-form">
                 <input type="hidden" id="album-path">
+                <input type="hidden" id="album-relative-path">
                 <div class="form-group">
                     <label for="album-title">Title</label>
                     <input type="text" id="album-title" class="form-control">
@@ -986,6 +987,7 @@ function renderPhotos(photos, albumPath) {
 // Edit album
 async function editAlbum(album) {
     document.getElementById('album-path').value = album.path;
+    document.getElementById('album-relative-path').value = album.relativePath;
     document.getElementById('album-title').value = album.title;
     document.getElementById('album-description').value = album.description || '';
 
@@ -1257,10 +1259,11 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         
         const path = document.getElementById('album-path').value;
+        const relativePath = document.getElementById('album-relative-path').value;
         
         if (!metadata.albums) metadata.albums = {};
         
-        metadata.albums[path] = {
+        metadata.albums[relativePath] = {
             title: document.getElementById('album-title').value,
             description: document.getElementById('album-description').value,
 
@@ -1270,10 +1273,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update local albums data
         const album = albums.find(a => a.path === path);
         if (album) {
-            album.title = metadata.albums[path].title;
-            album.description = metadata.albums[path].description;
-
-            album.coverPhoto = metadata.albums[path].cover_photo;
+            album.title = metadata.albums[relativePath].title;
+            album.description = metadata.albums[relativePath].description;
+            album.coverPhoto = metadata.albums[relativePath].cover_photo;
         }
         
         closeAlbumModal();
