@@ -142,14 +142,8 @@ func (g *Generator) Generate() error {
 		g.ProgressCallback(0, 1, "Generating HTML pages")
 	}
 
-	// Generate HTML site
-	htmlGen := &HTMLGenerator{
-		OutputPath:    g.OutputPath,
-		SiteTitle:     g.SiteTitle,
-		BaseURL:       g.BaseURL,
-		ShowLocations: g.metadata.ShowLocations,
-	}
-	if err := htmlGen.Generate(albums); err != nil {
+	// Generate HTML site using new template system
+	if err := g.GenerateHTMLFromTemplates(filteredAlbums); err != nil {
 		return fmt.Errorf("failed to generate HTML site: %w", err)
 	}
 

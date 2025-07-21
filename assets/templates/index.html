@@ -1,0 +1,37 @@
+<header class="gallery-header">
+    <h1 class="gallery-title">{{.Gallery.Title}}</h1>
+    {{if .Gallery.Description}}
+    <p class="gallery-description">{{.Gallery.Description}}</p>
+    {{end}}
+</header>
+
+<div class="masonry-grid" id="albums-grid">
+    <div class="grid-sizer"></div>
+    {{range .Gallery.Albums}}
+    <div class="grid-item album-card" data-album-id="{{.ID}}">
+        <a href="{{.ID}}/index.html" class="album-link">
+            <div class="album-cover">
+                {{if .Photos}}
+                {{with index .Photos 0}}
+                {{if index .Thumbnails "medium"}}
+                <img src=".{{index .Thumbnails "medium"}}" 
+                     alt="{{$.Title}}" 
+                     loading="lazy"
+                     onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                {{else if index .Thumbnails "small"}}
+                <img src=".{{index .Thumbnails "small"}}" 
+                     alt="{{$.Title}}" 
+                     loading="lazy"
+                     onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                {{end}}
+                {{end}}
+                {{end}}
+                <div class="album-info-overlay">
+                    <h2 class="album-title">{{.Title}}</h2>
+                    <div class="album-count">{{len .Photos}} photos</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {{end}}
+</div>
