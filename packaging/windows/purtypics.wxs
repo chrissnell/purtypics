@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" 
+           Name="Purtypics" 
+           Language="1033" 
+           Version="1.0.0" 
+           Manufacturer="Purtypics Contributors" 
+           UpgradeCode="8E3F7A9B-4C5D-4E6F-9A8B-7C6D5E4F3A2B">
+    
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine" />
+
+    <Media Id="1" Cabinet="purtypics.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Purtypics">
+          <Component Id="MainExecutable" Guid="A1B2C3D4-E5F6-4789-0123-456789ABCDEF">
+            <File Id="PurtypicsExe" 
+                  Source="../../build/purtypics-windows-amd64.exe" 
+                  Name="purtypics.exe" 
+                  KeyPath="yes" />
+          </Component>
+          
+          <Component Id="Documentation" Guid="B1B2C3D4-E5F6-4789-0123-456789ABCDEF">
+            <File Id="ReadmeFile" Source="../../README.md" />
+          </Component>
+          
+          <Component Id="PathComponent" Guid="C1B2C3D4-E5F6-4789-0123-456789ABCDEF">
+            <Environment Id="PATH" 
+                         Name="PATH" 
+                         Value="[INSTALLFOLDER]" 
+                         Permanent="no" 
+                         Part="last" 
+                         Action="set" 
+                         System="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+      
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Purtypics">
+          <Component Id="ApplicationShortcut" Guid="D1B2C3D4-E5F6-4789-0123-456789ABCDEF">
+            <Shortcut Id="ApplicationStartMenuShortcut"
+                      Name="Purtypics"
+                      Description="Static photo gallery generator"
+                      Target="[INSTALLFOLDER]purtypics.exe"
+                      WorkingDirectory="INSTALLFOLDER" />
+            <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+            <RegistryValue Root="HKCU" 
+                           Key="Software\Purtypics" 
+                           Name="installed" 
+                           Type="integer" 
+                           Value="1" 
+                           KeyPath="yes"/>
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="ProductFeature" Title="Purtypics" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="Documentation" />
+      <ComponentRef Id="PathComponent" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+  </Product>
+</Wix>
