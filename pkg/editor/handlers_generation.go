@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/cjs/purtypics/pkg/gallery"
@@ -50,11 +49,8 @@ func (s *Server) runGeneration() {
 	// Update status
 	s.genTracker.Update(0, "generating")
 
-	// Determine output path
+	// Use the output path from server configuration
 	outputPath := s.OutputPath
-	if outputPath == "" {
-		outputPath = filepath.Join(s.SourcePath, "output")
-	}
 
 	// Create generator with progress callback
 	generator := gallery.NewGenerator(s.SourcePath, outputPath, s.metadata.Title, "", false)

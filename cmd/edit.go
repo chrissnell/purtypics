@@ -27,14 +27,16 @@ The editor allows you to:
   - Mark photos as favorites
   - Hide photos from the gallery
   - Save metadata to a YAML file
+  - Generate the gallery HTML and thumbnails
 
 Usage:
   purtypics edit                    # Edit gallery in current directory
   purtypics edit /path/to/gallery   # Edit gallery in specified directory
   purtypics edit -s /photos -o /web # Use explicit source and output paths
 
-When using explicit flags (-s and -o), the command works with any directory structure.
-Otherwise, it expects a gallery directory with photos and gallery.yaml.`,
+The metadata file (gallery.yaml) is saved in the source directory by default.
+When you click "Generate" in the editor, the gallery HTML and thumbnails are
+created in the output directory (-o flag) or in a default location.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var sourcePath, outputPath, metadataPath string
@@ -45,12 +47,19 @@ Otherwise, it expects a gallery directory with photos and gallery.yaml.`,
 			if editSource == "" {
 				return fmt.Errorf("source directory is required when using explicit paths")
 			}
-			if editOutput == "" {
-				editOutput = editSource
-			}
 			
 			sourcePath = editSource
 			outputPath = editOutput
+			if outputPath == "" {
+				// Default output to sibling gallery directory
+				if filepath.IsAbs(sourcePath) {
+					// For absolute paths like /photos -> /gallery
+					outputPath = filepath.Join(filepath.Dir(sourcePath), "gallery")
+				} else {
+					// For relative paths
+					outputPath = "gallery"
+				}
+			}
 			metadataPath = common.ResolvePath(editMetadata, sourcePath)
 		} else {
 			// New mode matching generate behavior
@@ -60,7 +69,8 @@ Otherwise, it expects a gallery directory with photos and gallery.yaml.`,
 			}
 			
 			sourcePath = galleryPath
-			outputPath = galleryPath
+			// Default output to ./gallery
+			outputPath = "gallery"
 			metadataPath = filepath.Join(galleryPath, "gallery.yaml")
 		}
 
@@ -99,8 +109,8 @@ Otherwise, it expects a gallery directory with photos and gallery.yaml.`,
 
 func init() {
 	editCmd.Flags().StringVarP(&editSource, "source", "s", "", "Source directory containing photos (overrides default behavior)")
-	editCmd.Flags().StringVarP(&editOutput, "output", "o", "", "Output directory for metadata file (overrides default behavior)")
-	editCmd.Flags().StringVar(&editMetadata, "metadata", "gallery.yaml", "Path to metadata file (relative to output or absolute)")
+	editCmd.Flags().StringVarP(&editOutput, "output", "o", "", "Output directory for generated gallery HTML and thumbnails")
+	editCmd.Flags().StringVar(&editMetadata, "metadata", "gallery.yaml", "Path to metadata file (relative to source or absolute)")
 	editCmd.Flags().IntVarP(&editPort, "port", "p", 0, "Port to run the editor server on (0 for auto-assign)")
 	editCmd.Flags().BoolVar(&editNoBrowser, "no-browser", false, "Don't open browser automatically")
 

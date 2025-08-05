@@ -63,7 +63,14 @@ Otherwise, it expects a gallery directory with photos, gallery.yaml, and output/
 			}
 			
 			sourcePath = galleryPath
-			outputPath = filepath.Join(galleryPath, "output")
+			// Default output to sibling gallery directory
+			if filepath.IsAbs(galleryPath) {
+				// For absolute paths like /photos -> /gallery
+				outputPath = filepath.Join(filepath.Dir(galleryPath), "gallery")
+			} else {
+				// For relative paths like . -> gallery
+				outputPath = "gallery"
+			}
 			metadataPath = filepath.Join(galleryPath, "gallery.yaml")
 		}
 
