@@ -53,6 +53,22 @@ archives:
       - README*
       - CHANGELOG*
 
+msi:
+  - id: purtypics-msi
+    name: purtypics
+    
+    # Package name
+    product_name: "Purtypics"
+    publisher: "Chris Snell"
+    
+    # License file (not included)
+    
+    # Start menu shortcut
+    shortcuts:
+      - name: "Purtypics"
+        description: "Static photo gallery generator"
+        target: purtypics.exe
+
 dockers:
   - image_templates:
       - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-amd64"
