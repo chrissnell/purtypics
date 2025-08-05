@@ -55,7 +55,7 @@ archives:
 
 dockers:
   - image_templates:
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-amd64"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-amd64"
     dockerfile: Dockerfile
     use: docker
     goos: linux
@@ -68,7 +68,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.source={{.GitURL}}"
   - image_templates:
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-arm64"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-arm64"
     dockerfile: Dockerfile
     use: docker
     goos: linux
@@ -82,14 +82,14 @@ dockers:
       - "--label=org.opencontainers.image.source={{.GitURL}}"
 
 docker_manifests:
-  - name_template: "ghcr.io/cjs/purtypics:{{ .Tag }}"
+  - name_template: "ghcr.io/chrissnell/purtypics:{{ .Tag }}"
     image_templates:
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-amd64"
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-arm64"
-  - name_template: "ghcr.io/cjs/purtypics:latest"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-amd64"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-arm64"
+  - name_template: "ghcr.io/chrissnell/purtypics:latest"
     image_templates:
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-amd64"
-      - "ghcr.io/cjs/purtypics:{{ .Tag }}-arm64"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-amd64"
+      - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-arm64"
 
 checksum:
   name_template: 'checksums.txt'
