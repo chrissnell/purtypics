@@ -4,19 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 )
 
 // Processor handles video operations
-import (
-	"fmt"
-	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
-	"strings"
-)
 
 type Processor struct {
 	outputPath string
