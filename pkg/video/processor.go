@@ -9,6 +9,15 @@ import (
 )
 
 // Processor handles video operations
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"strings"
+)
+
 type Processor struct {
 	outputPath string
 }
@@ -34,7 +43,7 @@ func (p *Processor) ExtractThumbnail(videoPath, albumID, photoID string) (string
 		basePhotoID = strings.TrimSuffix(photoID, ext)
 	}
 	thumbPath := filepath.Join(thumbDir, fmt.Sprintf("%s_poster.jpg", basePhotoID))
-	relPath := filepath.Join("/static/thumbs", albumID, fmt.Sprintf("%s_poster.jpg", basePhotoID))
+	relPath := path.Join("/static/thumbs", albumID, fmt.Sprintf("%s_poster.jpg", basePhotoID))
 
 	// Check if thumbnail already exists
 	if _, err := os.Stat(thumbPath); err == nil {
@@ -126,10 +135,10 @@ func (p *Processor) CopyVideoToStatic(videoPath, albumID, photoID string) (strin
 	// Check if photoID already includes extension
 	if strings.HasSuffix(strings.ToLower(photoID), ext) {
 		destPath = filepath.Join(videoDir, photoID)
-		relPath = filepath.Join("/static/videos", albumID, photoID)
+		relPath = path.Join("/static/videos", albumID, photoID)
 	} else {
 		destPath = filepath.Join(videoDir, fmt.Sprintf("%s%s", photoID, ext))
-		relPath = filepath.Join("/static/videos", albumID, fmt.Sprintf("%s%s", photoID, ext))
+		relPath = path.Join("/static/videos", albumID, fmt.Sprintf("%s%s", photoID, ext))
 	}
 
 	// Check if already exists

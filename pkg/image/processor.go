@@ -1,6 +1,7 @@
 package image
 
 import (
+	"path"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -71,7 +72,7 @@ func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[strin
 		thumbDir := filepath.Join(p.outputPath, "static", "thumbs", albumID)
 		ext := ".jpg"
 		thumbPath := filepath.Join(thumbDir, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-		relPath := filepath.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
+		relPath := path.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
 		
 		thumbInfo, err := os.Stat(thumbPath)
 		if err != nil || thumbInfo.ModTime().Before(sourceInfo.ModTime()) {
@@ -125,7 +126,7 @@ func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[strin
 
 		ext := ".jpg" // always output JPEG for consistency
 		thumbPath := filepath.Join(thumbDir, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-		relPath := filepath.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
+		relPath := path.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
 
 		// Resize with Lanczos filter for best quality
 		resized := imaging.Resize(img, newWidth, newHeight, imaging.Lanczos)
