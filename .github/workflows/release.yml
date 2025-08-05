@@ -69,13 +69,20 @@ jobs:
 
       - name: Prepare installer files
         run: |
-          # Find the extracted Windows amd64 executable
-          $exePath = Get-ChildItem -Path dist -Recurse -Filter "purtypics.exe" | Where-Object { $_.Directory.Name -like "*windows_amd64*" -or $_.Directory.Name -like "*windows_x86_64*" } | Select-Object -First 1
+          # Debug: List all extracted files
+          Write-Host "Contents of dist directory:"
+          Get-ChildItem -Path dist -Recurse | ForEach-Object { Write-Host $_.FullName }
+          
+          # Find the extracted Windows executable (might be purtypics or purtypics.exe)
+          $exePath = Get-ChildItem -Path dist -Recurse | Where-Object { $_.Name -eq "purtypics.exe" -or $_.Name -eq "purtypics" } | Select-Object -First 1
           if ($exePath) {
+            # Ensure the destination directory exists
+            New-Item -ItemType Directory -Force -Path packaging\windows | Out-Null
+            # Copy and rename to purtypics.exe if needed
             Copy-Item $exePath.FullName -Destination packaging\windows\purtypics.exe
-            Write-Host "Copied purtypics.exe to packaging\windows\"
+            Write-Host "Copied $($exePath.Name) from $($exePath.FullName) to packaging\windows\purtypics.exe"
           } else {
-            Write-Error "Could not find purtypics.exe in extracted files"
+            Write-Error "Could not find purtypics executable in extracted files"
             exit 1
           }
 

@@ -80,9 +80,48 @@ All installers provide:
 - Uninstaller
 - Version information in Windows Programs list
 
+## FFmpeg Installation for Windows
+
+Purtypics requires FFmpeg for video thumbnail extraction. Windows users have several options:
+
+### Option 1: Download Pre-built FFmpeg (Recommended)
+1. Visit https://www.gyan.dev/ffmpeg/builds/
+2. Download the "full" build (not essentials)
+3. Extract the ZIP file to `C:fmpeg`
+4. Add `C:fmpegin` to your system PATH:
+   - Right-click "This PC" → Properties → Advanced system settings
+   - Click "Environment Variables"
+   - Under System variables, find "Path" and click Edit
+   - Click New and add `C:fmpegin`
+   - Click OK to save
+
+### Option 2: Using Chocolatey
+If you have Chocolatey installed:
+```powershell
+choco install ffmpeg
+```
+
+### Option 3: Using Scoop
+If you have Scoop installed:
+```powershell
+scoop install ffmpeg
+```
+
+### Option 4: Using winget
+```
+winget install ffmpeg
+```
+
+### Verify Installation
+Open a new Command Prompt or PowerShell and run:
+```
+ffmpeg -version
+```
+
 ## Notes
 
 - All installers target Windows 64-bit systems
-- FFmpeg must be installed separately for video support
+- FFmpeg must be installed separately for video support (see above)
 - PATH modifications may require administrator privileges
 - The MSI installer created with msitools is more basic than a full WiX toolset build
+- If ffmpeg is not found, video thumbnails will not be generated but the application will continue to work
