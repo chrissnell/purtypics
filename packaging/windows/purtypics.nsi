@@ -37,7 +37,7 @@ SetCompressor lzma
 
 ; Installer attributes
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "..\..\dist\purtypics-setup-${PRODUCT_VERSION}-windows-amd64.exe"
+OutFile "purtypics-installer.exe"
 InstallDir "$PROGRAMFILES64\Purtypics"
 InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
 ShowInstDetails show
@@ -49,8 +49,7 @@ Section "MainSection" SEC01
   SetOverwrite ifnewer
   
   ; Copy files
-  File "..\..\build\purtypics-windows-amd64.exe"
-  File /oname=purtypics.exe "..\..\build\purtypics-windows-amd64.exe"
+  File /oname=purtypics.exe "purtypics.exe"
   File "..\..\README.md"
   ; File /nonfatal "..\..\LICENSE"
   
