@@ -98,6 +98,7 @@ release:
   # Allows overwriting existing releases
   draft: false
   replace_existing_draft: true
+  replace_existing_artifacts: true
   target_commitish: '{{ .Commit }}'
   prerelease: auto
   mode: replace
