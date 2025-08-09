@@ -9,39 +9,20 @@
     <div class="grid-sizer"></div>
     {{range .Gallery.Albums}}
     <div class="grid-item album-card" data-album-id="{{.ID}}">
-        <a href="{{.ID}}/" class="album-link">
+        <a href="{{.ID}}/index.html" class="album-link">
             <div class="album-cover">
                 {{if .Photos}}
-                {{$album := .}}
-                {{$coverPhoto := ""}}
-                {{if $album.CoverPhoto}}
-                    {{range $album.Photos}}
-                        {{if eq .Filename $album.CoverPhoto}}
-                            {{$coverPhoto = .}}
-                        {{end}}
-                    {{end}}
-                {{end}}
-                {{if not $coverPhoto}}
-                    {{$coverPhoto = index $album.Photos 0}}
-                {{end}}
-                {{with $coverPhoto}}
+                {{with index .Photos 0}}
                 {{if index .Thumbnails "medium"}}
                 <img src=".{{index .Thumbnails "medium"}}" 
-                     alt="{{$album.Title}}" 
+                     alt="{{$.Title}}" 
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
                 {{else if index .Thumbnails "small"}}
                 <img src=".{{index .Thumbnails "small"}}" 
-                     alt="{{$album.Title}}" 
+                     alt="{{$.Title}}" 
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
-                {{else if .IsVideo}}
-                    {{if index .Thumbnails "poster"}}
-                    <img src=".{{index .Thumbnails "poster"}}" 
-                         alt="{{$album.Title}}" 
-                         loading="lazy"
-                         onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
-                    {{end}}
                 {{end}}
                 {{end}}
                 {{end}}

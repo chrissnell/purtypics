@@ -1,9 +1,6 @@
-// Modern Gallery JavaScript with video support
+// Modern Gallery JavaScript with proper Masonry implementation
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize video hover functionality
-    initVideoHover();
-    
     // Initialize Masonry for album or photo grids
     const grids = document.querySelectorAll('.masonry-grid');
     
@@ -15,21 +12,47 @@ document.addEventListener('DOMContentLoaded', function() {
             percentPosition: true,
             gutter: 0, // Gutter is handled by CSS margins
             transitionDuration: '0.3s',
-            initLayout: false // We'll layout after images load
+            initLayout: true // Layout immediately with visible images
         });
         
-        // Layout Masonry after all images have loaded
-        imagesLoaded(gridElem, function() {
-            msnry.layout();
-            
-            // Add loaded class to items for fade-in effect
-            const items = gridElem.querySelectorAll('.grid-item');
-            items.forEach(function(item, index) {
-                setTimeout(function() {
-                    item.classList.add('loaded');
-                }, index * 50); // Stagger the fade-in
-            });
+        // Store masonry instance on element for later access
+        gridElem.masonry = msnry;
+        
+        // Progressive layout approach: layout visible images first, then as others load
+        const visibleImages = gridElem.querySelectorAll('.grid-item img');
+        let loadedCount = 0;
+        const totalImages = visibleImages.length;
+        
+        // Function to handle individual image load
+        const handleImageLoad = function() {
+            loadedCount++;
+            // Re-layout periodically as images load (batch updates)
+            if (loadedCount % 5 === 0 || loadedCount === totalImages) {
+                msnry.layout();
+            }
+        };
+        
+        // Set up load handlers for each image
+        visibleImages.forEach(function(img, index) {
+            if (img.complete && img.naturalWidth !== 0) {
+                // Image already loaded (from cache)
+                handleImageLoad();
+                img.parentElement.parentElement.classList.add('loaded');
+            } else {
+                // Wait for image to load
+                img.addEventListener('load', function() {
+                    handleImageLoad();
+                    // Add loaded class with stagger effect
+                    setTimeout(function() {
+                        img.parentElement.parentElement.classList.add('loaded');
+                    }, index * 20); // Reduced stagger time
+                });
+                img.addEventListener('error', handleImageLoad); // Handle errors too
+            }
         });
+        
+        // Initial layout with whatever is visible
+        msnry.layout();
         
         // Re-layout on window resize
         let resizeTimer;
@@ -61,205 +84,164 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(script);
     }
     
-    // Initialize lightbox functionality
+    // Simple lightbox functionality for photo pages
     const photoLinks = document.querySelectorAll('.photo-link[data-lightbox]');
     if (photoLinks.length > 0) {
-        initializeLightbox();
+        initializeLightbox(photoLinks);
     }
 });
 
-// Video hover functionality
-function initVideoHover() {
-    const videos = document.querySelectorAll('.video-item');
-    
-    videos.forEach(item => {
-        const videoContainer = item.querySelector('.video-container');
-        if (!videoContainer) return;
-        
-        const poster = videoContainer.querySelector('.video-poster');
-        const video = videoContainer.querySelector('.video-preview');
-        const playButton = videoContainer.querySelector('.play-button');
-        
-        if (!video || !poster) return;
-        
-        // Preload on first interaction
-        let hasPreloaded = false;
-        
-        videoContainer.addEventListener('mouseenter', () => {
-            // Preload the video on first hover
-            if (!hasPreloaded) {
-                video.preload = 'metadata';
-                hasPreloaded = true;
-            }
-            
-            // Show video and hide play button
-            video.style.display = 'block';
-            setTimeout(() => {
-                video.style.opacity = '1';
-                poster.style.opacity = '0';
-            }, 10);
-            
-            // Ensure video is muted (required for autoplay)
-            video.muted = true;
-            
-            // Try to play the video
-            const playPromise = video.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    // Autoplay started successfully
-                    if (playButton) {
-                        playButton.style.opacity = '0';
-                    }
-                }).catch(error => {
-                    console.error('Video autoplay failed:', error);
-                    // Revert to poster on autoplay failure
-                    video.style.opacity = '0';
-                    poster.style.opacity = '1';
-                    
-                    // Try once more after user interaction
-                    if (error.name === 'NotAllowedError') {
-                        // Add click handler to play on click
-                        videoContainer.addEventListener('click', function playOnClick() {
-                            video.play().catch(e => console.error('Video play on click failed:', e));
-                            videoContainer.removeEventListener('click', playOnClick);
-                        }, { once: true });
-                    }
-                });
-            }
-        });
-        
-        videoContainer.addEventListener('mouseleave', () => {
-            // Hide video and show poster
-            video.style.opacity = '0';
-            poster.style.opacity = '1';
-            video.pause();
-            video.currentTime = 0;
-            
-            // Reset play button after transition
-            if (playButton) {
-                setTimeout(() => {
-                    playButton.style.opacity = '1';
-                }, 300);
-            }
-        });
-    });
-}
-
-// Enhanced lightbox implementation with video support
-function initializeLightbox() {
+// Basic lightbox implementation
+function initializeLightbox(links) {
     // Create lightbox elements
     const lightbox = document.createElement('div');
     lightbox.className = 'lightbox';
     lightbox.innerHTML = `
         <div class="lightbox-content">
-            <span class="lightbox-close">&times;</span>
-            <div class="lightbox-image-container">
-                <img src="" alt="" style="display:none;">
-                <video controls style="display:none; max-width: 100%; max-height: calc(100vh - 8rem);" preload="metadata"></video>
-                <div class="lightbox-info"></div>
-                <div class="lightbox-exif"></div>
-            </div>
+            <img class="lightbox-image" src="" alt="">
+            <button class="lightbox-close">&times;</button>
+            <button class="lightbox-prev">‹</button>
+            <button class="lightbox-next">›</button>
         </div>
-        <button class="lightbox-prev">‹</button>
-        <button class="lightbox-next">›</button>
     `;
     document.body.appendChild(lightbox);
     
-    const lightboxImg = lightbox.querySelector('img');
-    const lightboxVideo = lightbox.querySelector('video');
-    const lightboxInfo = lightbox.querySelector('.lightbox-info');
+    const lightboxImage = lightbox.querySelector('.lightbox-image');
     const closeBtn = lightbox.querySelector('.lightbox-close');
     const prevBtn = lightbox.querySelector('.lightbox-prev');
     const nextBtn = lightbox.querySelector('.lightbox-next');
     
     let currentIndex = 0;
-    const photoCards = Array.from(document.querySelectorAll('.photo-card'));
+    const photos = Array.from(links);
     
-    // Open lightbox on photo click
-    photoCards.forEach((card, index) => {
-        const link = card.querySelector('.photo-link');
-        if (link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                currentIndex = index;
-                showPhoto(currentIndex);
-                lightbox.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-                updateNavigation();
-            });
-        }
+    // Open lightbox
+    links.forEach((link, index) => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentIndex = index;
+            showPhoto(currentIndex);
+            lightbox.classList.add('active');
+        });
     });
     
     // Close lightbox
     closeBtn.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', function(e) {
-        if (e.target === lightbox || e.target.classList.contains('lightbox-content')) {
+        if (e.target === lightbox) {
             closeLightbox();
         }
     });
     
     // Navigation
     prevBtn.addEventListener('click', function() {
-        navigate(-1);
+        currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+        showPhoto(currentIndex);
     });
     
     nextBtn.addEventListener('click', function() {
-        navigate(1);
+        currentIndex = (currentIndex + 1) % photos.length;
+        showPhoto(currentIndex);
     });
     
     // Keyboard navigation
     document.addEventListener('keydown', function(e) {
-        if (lightbox.style.display !== 'flex') return;
+        if (!lightbox.classList.contains('active')) return;
         
         if (e.key === 'Escape') closeLightbox();
-        if (e.key === 'ArrowLeft') navigate(-1);
-        if (e.key === 'ArrowRight') navigate(1);
+        if (e.key === 'ArrowLeft') prevBtn.click();
+        if (e.key === 'ArrowRight') nextBtn.click();
     });
     
     function showPhoto(index) {
-        const card = photoCards[index];
-        const link = card.querySelector('.photo-link');
-        const isVideo = card.classList.contains('video-item');
-        const fullSrc = link ? link.getAttribute('href') : '';
-        
-        // Extract title
-        const photoImg = card.querySelector('img');
-        const photoTitle = card.querySelector('.photo-title');
-        const title = photoTitle ? photoTitle.textContent : (photoImg ? photoImg.getAttribute('alt') : '');
-        
-        // Show/hide media elements
-        if (isVideo) {
-            lightboxImg.style.display = 'none';
-            lightboxVideo.style.display = 'block';
-            lightboxVideo.src = card.dataset.videoSrc || fullSrc;
-        } else {
-            lightboxVideo.style.display = 'none';
-            lightboxVideo.pause();
-            lightboxVideo.src = '';
-            lightboxImg.style.display = 'block';
-            lightboxImg.src = fullSrc;
-        }
-        
-        // Update info
-        lightboxInfo.innerHTML = title ? `<h3>${title}</h3>` : '';
-    }
-    
-    function navigate(direction) {
-        currentIndex = (currentIndex + direction + photoCards.length) % photoCards.length;
-        showPhoto(currentIndex);
-        updateNavigation();
-    }
-    
-    function updateNavigation() {
-        prevBtn.style.display = photoCards.length > 1 ? 'block' : 'none';
-        nextBtn.style.display = photoCards.length > 1 ? 'block' : 'none';
+        const link = photos[index];
+        lightboxImage.src = link.href;
+        lightboxImage.alt = link.querySelector('img').alt;
     }
     
     function closeLightbox() {
-        lightbox.style.display = 'none';
-        document.body.style.overflow = '';
-        lightboxVideo.pause();
-        lightboxVideo.src = '';
+        lightbox.classList.remove('active');
     }
 }
+
+// Add lightbox styles
+const lightboxStyles = `
+.lightbox {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.lightbox.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    cursor: default;
+}
+
+.lightbox-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+.lightbox-close,
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 10px 15px;
+    transition: background 0.3s;
+}
+
+.lightbox-close:hover,
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-close {
+    top: 20px;
+    right: 20px;
+}
+
+.lightbox-prev {
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.lightbox-next {
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+@media (max-width: 768px) {
+    .lightbox-prev,
+    .lightbox-next {
+        padding: 5px 10px;
+        font-size: 1.5rem;
+    }
+}
+`;
+
+// Inject lightbox styles
+const styleSheet = document.createElement('style');
+styleSheet.textContent = lightboxStyles;
+document.head.appendChild(styleSheet);

@@ -1,8 +1,6 @@
 <header class="album-header">
     <nav class="breadcrumb">
-        <a href="../" class="gallery-link">{{.Gallery.Title}}</a>
-        <span class="breadcrumb-separator"> :: </span>
-        <span class="album-name">{{.Album.Title}}</span>
+        <a href="../index.html" class="back-link">← Back to Gallery</a>
     </nav>
     <h1 class="album-title">{{.Album.Title}}</h1>
     {{if .Album.Description}}
@@ -18,39 +16,8 @@
 <div class="masonry-grid" id="photos-grid">
     <div class="grid-sizer"></div>
     {{range .Album.Photos}}
-    <div class="grid-item photo-card {{if .IsVideo}}video-item{{end}}" data-photo-id="{{.ID}}" {{if .IsVideo}}data-video-src="..{{.VideoPath}}"{{end}}>
+    <div class="grid-item photo-card" data-photo-id="{{.ID}}">
         <a href="..{{if .IsVideo}}{{.VideoPath}}{{else}}{{if index .Thumbnails "full"}}{{index .Thumbnails "full"}}{{end}}{{end}}" class="photo-link" data-lightbox="album">
-            {{if .IsVideo}}
-            <div class="video-container">
-                {{if index .Thumbnails "poster"}}
-                <img src="..{{index .Thumbnails "poster"}}" 
-                     alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
-                     loading="lazy"
-                     class="video-poster">
-                {{else if index .Thumbnails "medium"}}
-                <img src="..{{index .Thumbnails "medium"}}" 
-                     alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
-                     loading="lazy"
-                     class="video-poster">
-                {{end}}
-                <video src="..{{.VideoPath}}" 
-                       muted 
-                       loop 
-                       preload="none"
-                       controlslist="nodownload nofullscreen noremoteplayback"
-                       disablepictureinpicture
-                       playsinline
-                       crossorigin="anonymous"
-                       class="video-preview"
-                       style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
-                </video>
-                <div class="play-button">
-                    <svg viewBox="0 0 24 24" width="48" height="48">
-                        <path fill="white" d="M8 5v14l11-7z"/>
-                    </svg>
-                </div>
-            </div>
-            {{else}}
             {{if index .Thumbnails "medium"}}
             <img src="..{{index .Thumbnails "medium"}}" 
                  alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
@@ -63,7 +30,6 @@
             <img src="..{{index .Thumbnails "poster"}}" 
                  alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
                  loading="lazy">
-            {{end}}
             {{end}}
             {{if .Title}}
             <div class="photo-overlay">
