@@ -12,21 +12,47 @@ document.addEventListener('DOMContentLoaded', function() {
             percentPosition: true,
             gutter: 0, // Gutter is handled by CSS margins
             transitionDuration: '0.3s',
-            initLayout: false // We'll layout after images load
+            initLayout: true // Layout immediately with visible images
         });
         
-        // Layout Masonry after all images have loaded
-        imagesLoaded(gridElem, function() {
-            msnry.layout();
-            
-            // Add loaded class to items for fade-in effect
-            const items = gridElem.querySelectorAll('.grid-item');
-            items.forEach(function(item, index) {
-                setTimeout(function() {
-                    item.classList.add('loaded');
-                }, index * 50); // Stagger the fade-in
-            });
+        // Store masonry instance on element for later access
+        gridElem.masonry = msnry;
+        
+        // Progressive layout approach: layout visible images first, then as others load
+        const visibleImages = gridElem.querySelectorAll('.grid-item img');
+        let loadedCount = 0;
+        const totalImages = visibleImages.length;
+        
+        // Function to handle individual image load
+        const handleImageLoad = function() {
+            loadedCount++;
+            // Re-layout periodically as images load (batch updates)
+            if (loadedCount % 5 === 0 || loadedCount === totalImages) {
+                msnry.layout();
+            }
+        };
+        
+        // Set up load handlers for each image
+        visibleImages.forEach(function(img, index) {
+            if (img.complete && img.naturalWidth !== 0) {
+                // Image already loaded (from cache)
+                handleImageLoad();
+                img.parentElement.parentElement.classList.add('loaded');
+            } else {
+                // Wait for image to load
+                img.addEventListener('load', function() {
+                    handleImageLoad();
+                    // Add loaded class with stagger effect
+                    setTimeout(function() {
+                        img.parentElement.parentElement.classList.add('loaded');
+                    }, index * 20); // Reduced stagger time
+                });
+                img.addEventListener('error', handleImageLoad); // Handle errors too
+            }
         });
+        
+        // Initial layout with whatever is visible
+        msnry.layout();
         
         // Re-layout on window resize
         let resizeTimer;
