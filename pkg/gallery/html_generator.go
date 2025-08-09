@@ -27,6 +27,8 @@ type HTMLTemplateData struct {
 	Content     template.HTML
 	Gallery     *GalleryData
 	Album       *Album
+	Version     string
+	CommitHash  string
 }
 
 // GenerateHTMLFromTemplates generates the gallery HTML using the embedded templates
@@ -175,6 +177,8 @@ func (g *Generator) generateIndexPage(tmpl *template.Template, galleryData *Gall
 		Description: galleryData.Description,
 		BasePath:    ".",
 		Content:     template.HTML(contentBuf.String()),
+		Version:     g.Version,
+		CommitHash:  g.CommitHash,
 	}); err != nil {
 		return fmt.Errorf("failed to render index page: %w", err)
 	}
@@ -213,6 +217,8 @@ func (g *Generator) generateAlbumPage(tmpl *template.Template, album *Album, gal
 		Description: string(album.Description),
 		BasePath:    "..",
 		Content:     template.HTML(contentBuf.String()),
+		Version:     g.Version,
+		CommitHash:  g.CommitHash,
 	}); err != nil {
 		return fmt.Errorf("failed to render album page: %w", err)
 	}

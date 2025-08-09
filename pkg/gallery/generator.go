@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 
 	"github.com/cjs/purtypics/pkg/exif"
@@ -24,6 +25,8 @@ type Generator struct {
 	BaseURL          string
 	Verbose          bool
 	MetadataPath     string
+	Version          string
+	CommitHash       string
 	metadata         *metadata.GalleryMetadata
 	imageProcessor   *image.Processor
 	videoProcessor   *video.Processor
@@ -32,12 +35,32 @@ type Generator struct {
 
 // NewGenerator creates a new gallery generator
 func NewGenerator(sourcePath, outputPath, siteTitle, baseURL string, verbose bool) *Generator {
+	// Get version from build info
+	version := "v1.0.9"
+	commitHash := "dev"
+	
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				if len(setting.Value) >= 7 {
+					commitHash = setting.Value[:7]
+				}
+			}
+		}
+		// Try to get version from module
+		if info.Main.Version != "" && info.Main.Version != "(devel)" {
+			version = info.Main.Version
+		}
+	}
+	
 	return &Generator{
 		SourcePath:     sourcePath,
 		OutputPath:     outputPath,
 		SiteTitle:      siteTitle,
 		BaseURL:        baseURL,
 		Verbose:        verbose,
+		Version:        version,
+		CommitHash:     commitHash,
 		imageProcessor: image.NewProcessor(outputPath),
 		videoProcessor: video.NewProcessor(outputPath),
 	}
