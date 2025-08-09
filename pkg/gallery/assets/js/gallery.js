@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gridElem.masonry = msnry;
         
         // Progressive layout approach: layout visible images first, then as others load
-        const visibleImages = gridElem.querySelectorAll('.grid-item img');
+        const visibleImages = gridElem.querySelectorAll('.grid-item img, .album-cover img');
         let loadedCount = 0;
         const totalImages = visibleImages.length;
         
