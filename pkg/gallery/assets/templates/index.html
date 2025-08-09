@@ -9,7 +9,7 @@
     <div class="grid-sizer"></div>
     {{range .Gallery.Albums}}
     <div class="grid-item album-card" data-album-id="{{.ID}}">
-        <a href="{{.ID}}/index.html" class="album-link">
+        <a href="{{.ID}}/" class="album-link">
             <div class="album-cover">
                 {{if .Photos}}
                 {{with index .Photos 0}}

@@ -37,14 +37,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (img.complete && img.naturalWidth !== 0) {
                 // Image already loaded (from cache)
                 handleImageLoad();
-                img.parentElement.parentElement.classList.add('loaded');
+                img.closest('.grid-item, .album-card')?.classList.add('loaded');
             } else {
                 // Wait for image to load
                 img.addEventListener('load', function() {
                     handleImageLoad();
                     // Add loaded class with stagger effect
                     setTimeout(function() {
-                        img.parentElement.parentElement.classList.add('loaded');
+                        img.closest('.grid-item, .album-card')?.classList.add('loaded');
                     }, index * 20); // Reduced stagger time
                 });
                 img.addEventListener('error', handleImageLoad); // Handle errors too
