@@ -12,15 +12,18 @@
         <a href="{{.ID}}/" class="album-link">
             <div class="album-cover">
                 {{if .Photos}}
-                {{with index .Photos 0}}
+                {{$album := .}}
+                {{$cover := index .Photos 0}}
+                {{if $album.CoverPhoto}}{{range .Photos}}{{if eq .Filename $album.CoverPhoto}}{{$cover = .}}{{end}}{{end}}{{end}}
+                {{with $cover}}
                 {{if index .Thumbnails "medium"}}
-                <img src=".{{index .Thumbnails "medium"}}" 
-                     alt="{{$.Title}}" 
+                <img src=".{{index .Thumbnails "medium"}}"
+                     alt="{{.Title}}"
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
                 {{else if index .Thumbnails "small"}}
-                <img src=".{{index .Thumbnails "small"}}" 
-                     alt="{{$.Title}}" 
+                <img src=".{{index .Thumbnails "small"}}"
+                     alt="{{.Title}}"
                      loading="lazy"
                      onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
                 {{end}}

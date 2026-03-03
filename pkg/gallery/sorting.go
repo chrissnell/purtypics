@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -79,18 +80,27 @@ func SetAlbumDatesFromFirstPhoto(albums []Album) {
 	}
 }
 
-// SortAlbumsByCustomOrder reorders albums to match the given order of album IDs.
+// SortAlbumsByCustomOrder reorders albums to match the given order of relative paths.
 // Albums in the order list come first (in that order), followed by any remaining
 // albums in their current order.
-func SortAlbumsByCustomOrder(albums []Album, order []string) {
+func SortAlbumsByCustomOrder(albums []Album, order []string, sourcePath string) {
 	pos := make(map[string]int, len(order))
 	for i, id := range order {
 		pos[id] = i
 	}
 
+	albumKey := func(a Album) string {
+		if sourcePath != "" {
+			if rel, err := filepath.Rel(sourcePath, a.Path); err == nil {
+				return rel
+			}
+		}
+		return a.ID
+	}
+
 	sort.SliceStable(albums, func(i, j int) bool {
-		pi, okI := pos[albums[i].ID]
-		pj, okJ := pos[albums[j].ID]
+		pi, okI := pos[albumKey(albums[i])]
+		pj, okJ := pos[albumKey(albums[j])]
 		if okI && okJ {
 			return pi < pj
 		}

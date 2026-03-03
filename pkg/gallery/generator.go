@@ -110,8 +110,13 @@ func (g *Generator) Generate() error {
 	for i := range albums {
 		album := &albums[i]
 		
-		// Apply album metadata
-		if albumMeta := g.metadata.GetAlbumMetadata(album.ID); albumMeta != nil {
+		// Apply album metadata (try relative path first, fall back to basename)
+		relPath, _ := filepath.Rel(g.SourcePath, album.Path)
+		albumMeta := g.metadata.GetAlbumMetadata(relPath)
+		if albumMeta == nil {
+			albumMeta = g.metadata.GetAlbumMetadata(album.ID)
+		}
+		if albumMeta != nil {
 			if albumMeta.Title != "" {
 				album.Title = albumMeta.Title
 			}
@@ -160,7 +165,7 @@ func (g *Generator) Generate() error {
 	// Sort albums by original photo dates (newest first), then apply custom order if set
 	SortAlbumsByDate(albums)
 	if len(g.metadata.AlbumOrder) > 0 {
-		SortAlbumsByCustomOrder(albums, g.metadata.AlbumOrder)
+		SortAlbumsByCustomOrder(albums, g.metadata.AlbumOrder, g.SourcePath)
 	}
 
 	// Report HTML generation progress
