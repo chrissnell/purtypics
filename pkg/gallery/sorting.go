@@ -78,3 +78,28 @@ func SetAlbumDatesFromFirstPhoto(albums []Album) {
 		}
 	}
 }
+
+// SortAlbumsByCustomOrder reorders albums to match the given order of album IDs.
+// Albums in the order list come first (in that order), followed by any remaining
+// albums in their current order.
+func SortAlbumsByCustomOrder(albums []Album, order []string) {
+	pos := make(map[string]int, len(order))
+	for i, id := range order {
+		pos[id] = i
+	}
+
+	sort.SliceStable(albums, func(i, j int) bool {
+		pi, okI := pos[albums[i].ID]
+		pj, okJ := pos[albums[j].ID]
+		if okI && okJ {
+			return pi < pj
+		}
+		if okI {
+			return true
+		}
+		if okJ {
+			return false
+		}
+		return false // preserve existing order for unlisted albums
+	})
+}

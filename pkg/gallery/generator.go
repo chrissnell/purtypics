@@ -157,8 +157,11 @@ func (g *Generator) Generate() error {
 	}
 	albums = filteredAlbums
 
-	// Sort albums by original photo dates (newest first)
+	// Sort albums by original photo dates (newest first), then apply custom order if set
 	SortAlbumsByDate(albums)
+	if len(g.metadata.AlbumOrder) > 0 {
+		SortAlbumsByCustomOrder(albums, g.metadata.AlbumOrder)
+	}
 
 	// Report HTML generation progress
 	if g.ProgressCallback != nil {

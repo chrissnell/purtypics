@@ -571,6 +571,22 @@ textarea.form-control {
     transition: all 0.2s;
 }
 
+.album-card[draggable="true"] {
+    cursor: grab;
+}
+
+.album-card[draggable="true"] img {
+    pointer-events: none;
+}
+
+.album-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.album-card.dragging {
+    opacity: 0.4;
+}
+
 .album-card:hover, .photo-card:hover {
     transform: translateY(-2px);
     border-color: var(--accent-teal);
@@ -931,19 +947,53 @@ function updateGalleryForm() {
 }
 
 // Render albums grid
+let dragSrcIndex = null;
+let albumsBeforeDrag = null;
+
 function renderAlbums() {
     const container = document.getElementById('albums-list');
     container.innerHTML = '';
-    
-    albums.forEach(album => {
+
+    albums.forEach((album, index) => {
         const card = document.createElement('div');
         card.className = 'album-card';
+        card.draggable = true;
+        card.dataset.index = index;
         card.onclick = () => editAlbum(album);
-        
+
+        card.addEventListener('dragstart', (e) => {
+            dragSrcIndex = index;
+            albumsBeforeDrag = albums.slice();
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        card.addEventListener('dragend', () => {
+            if (albumsBeforeDrag) {
+                const changed = albums.some((a, i) => a !== albumsBeforeDrag[i]);
+                if (changed) {
+                    updateAlbumOrder();
+                    scheduleAutoSave();
+                }
+                albumsBeforeDrag = null;
+            }
+            dragSrcIndex = null;
+            renderAlbums();
+        });
+        card.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const targetIndex = parseInt(card.dataset.index);
+            if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+                const moved = albums.splice(dragSrcIndex, 1)[0];
+                albums.splice(targetIndex, 0, moved);
+                dragSrcIndex = targetIndex;
+                renderAlbums();
+            }
+        });
+
         const albumName = album.path.split('/').pop();
-        // Use first photo as default cover if none set
         const coverImage = album.coverPhoto || (album.photos && album.photos.length > 0 ? album.photos[0] : 'placeholder.jpg');
-        
+
         card.innerHTML = ` + "`" + `
             <img src="/images/${albumName}/${coverImage}" alt="${album.title}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22250%22 height=%22200%22 viewBox=%220 0 250 200%22><rect fill=%22%23ddd%22 width=%22250%22 height=%22200%22/><text fill=%22%23999%22 x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">
             <div class="album-card-info">
@@ -952,9 +1002,17 @@ function renderAlbums() {
                 ${album.description ? '<p>' + album.description + '</p>' : ''}
             </div>
         ` + "`" + `;
-        
+
+        if (index === dragSrcIndex) {
+            card.classList.add('dragging');
+        }
+
         container.appendChild(card);
     });
+}
+
+function updateAlbumOrder() {
+    metadata.album_order = albums.map(a => a.relativePath);
 }
 
 // Populate album select for photos tab

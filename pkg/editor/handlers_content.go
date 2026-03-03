@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -60,6 +61,28 @@ func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 		}
 
 		albums[i] = resp
+	}
+
+	// Apply custom album order if set
+	if len(s.metadata.AlbumOrder) > 0 {
+		pos := make(map[string]int, len(s.metadata.AlbumOrder))
+		for i, id := range s.metadata.AlbumOrder {
+			pos[id] = i
+		}
+		sort.SliceStable(albums, func(i, j int) bool {
+			pi, okI := pos[albums[i].RelativePath]
+			pj, okJ := pos[albums[j].RelativePath]
+			if okI && okJ {
+				return pi < pj
+			}
+			if okI {
+				return true
+			}
+			if okJ {
+				return false
+			}
+			return false
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
