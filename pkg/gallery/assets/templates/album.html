@@ -16,20 +16,33 @@
 <div class="masonry-grid" id="photos-grid">
     <div class="grid-sizer"></div>
     {{range .Album.Photos}}
-    <div class="grid-item photo-card" data-photo-id="{{.ID}}">
+    <div class="grid-item photo-card{{if .IsVideo}} video-item{{end}}" data-photo-id="{{.ID}}"{{if .IsVideo}} data-video="true" data-video-src="..{{.VideoPath}}"{{end}}>
         <a href="..{{if .IsVideo}}{{.VideoPath}}{{else}}{{if index .Thumbnails "full"}}{{index .Thumbnails "full"}}{{end}}{{end}}" class="photo-link" data-lightbox="album">
+            {{if .IsVideo}}
+            <div class="video-container">
+                <img src="..{{index .Thumbnails "poster"}}"
+                     alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}"
+                     class="video-poster"
+                     loading="lazy">
+                <video src="..{{.VideoPath}}"
+                       muted loop playsinline preload="none"
+                       class="video-preview"></video>
+                <div class="play-button">&#9654;</div>
+            </div>
+            {{else}}
             {{if index .Thumbnails "medium"}}
-            <img src="..{{index .Thumbnails "medium"}}" 
-                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
+            <img src="..{{index .Thumbnails "medium"}}"
+                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}"
                  loading="lazy">
             {{else if index .Thumbnails "small"}}
-            <img src="..{{index .Thumbnails "small"}}" 
-                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
+            <img src="..{{index .Thumbnails "small"}}"
+                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}"
                  loading="lazy">
             {{else if index .Thumbnails "poster"}}
-            <img src="..{{index .Thumbnails "poster"}}" 
-                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}" 
+            <img src="..{{index .Thumbnails "poster"}}"
+                 alt="{{if .Title}}{{.Title}}{{else}}{{.Filename}}{{end}}"
                  loading="lazy">
+            {{end}}
             {{end}}
             {{if .Title}}
             <div class="photo-overlay">

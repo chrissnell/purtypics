@@ -84,12 +84,32 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(script);
     }
     
+    // Video hover preview
+    initVideoHover();
+
     // Simple lightbox functionality for photo pages
     const photoLinks = document.querySelectorAll('.photo-link[data-lightbox]');
     if (photoLinks.length > 0) {
         initializeLightbox(photoLinks);
     }
 });
+
+function initVideoHover() {
+    const videoItems = document.querySelectorAll('.video-item');
+    videoItems.forEach(item => {
+        const preview = item.querySelector('.video-preview');
+        if (!preview) return;
+
+        item.addEventListener('mouseenter', () => {
+            preview.play().catch(() => {});
+        });
+
+        item.addEventListener('mouseleave', () => {
+            preview.pause();
+            preview.currentTime = 0;
+        });
+    });
+}
 
 // Basic lightbox implementation
 function initializeLightbox(links) {
@@ -99,14 +119,16 @@ function initializeLightbox(links) {
     lightbox.innerHTML = `
         <div class="lightbox-content">
             <img class="lightbox-image" src="" alt="">
+            <video class="lightbox-video" controls preload="metadata"></video>
             <button class="lightbox-close">&times;</button>
             <button class="lightbox-prev">‹</button>
             <button class="lightbox-next">›</button>
         </div>
     `;
     document.body.appendChild(lightbox);
-    
+
     const lightboxImage = lightbox.querySelector('.lightbox-image');
+    const lightboxVideo = lightbox.querySelector('.lightbox-video');
     const closeBtn = lightbox.querySelector('.lightbox-close');
     const prevBtn = lightbox.querySelector('.lightbox-prev');
     const nextBtn = lightbox.querySelector('.lightbox-next');
@@ -154,12 +176,35 @@ function initializeLightbox(links) {
     
     function showPhoto(index) {
         const link = photos[index];
-        lightboxImage.src = link.href;
-        lightboxImage.alt = link.querySelector('img').alt;
+        const card = link.closest('.photo-card');
+        const isVideo = card && card.dataset.video === 'true';
+
+        // Pause any hover preview
+        const preview = card && card.querySelector('.video-preview');
+        if (preview) {
+            preview.pause();
+        }
+
+        if (isVideo) {
+            const videoSrc = card.dataset.videoSrc;
+            lightboxVideo.src = videoSrc;
+            lightboxVideo.style.display = 'block';
+            lightboxImage.style.display = 'none';
+        } else {
+            lightboxVideo.pause();
+            lightboxVideo.src = '';
+            lightboxVideo.style.display = 'none';
+            lightboxImage.src = link.href;
+            lightboxImage.alt = link.querySelector('img').alt;
+            lightboxImage.style.display = 'block';
+        }
     }
-    
+
     function closeLightbox() {
         lightbox.classList.remove('active');
+        lightboxVideo.pause();
+        lightboxVideo.src = '';
+        lightboxVideo.style.display = 'none';
     }
 }
 
