@@ -81,10 +81,9 @@ func ScanDirectory(rootPath string) ([]Album, error) {
 
 func scanAlbum(path string) (Album, error) {
 	album := Album{
-		ID:        filepath.Base(path),
-		Title:     formatTitle(filepath.Base(path)),
-		Path:      path,
-		CreatedAt: time.Now(),
+		ID:    filepath.Base(path),
+		Title: formatTitle(filepath.Base(path)),
+		Path:  path,
 	}
 
 	entries, err := os.ReadDir(path)

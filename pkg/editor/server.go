@@ -82,11 +82,13 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 	}
 	s.metadata = meta
 
-	// Scan albums
+	// Scan albums and sort by original photo dates
 	albums, err := gallery.ScanDirectory(s.SourcePath)
 	if err != nil {
 		return fmt.Errorf("scanning albums: %w", err)
 	}
+	gallery.SetAlbumDatesFromFirstPhoto(albums)
+	gallery.SortAlbumsByDate(albums)
 	s.albums = albums
 
 	// Set up routes

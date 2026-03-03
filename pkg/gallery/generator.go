@@ -150,14 +150,14 @@ func (g *Generator) Generate() error {
 		
 		// Only include albums with visible photos
 		if len(album.Photos) > 0 {
-			// Sort photos by date after processing (oldest to newest)
 			album.SortPhotosByDate()
+			album.SetCreatedAtFromPhotos()
 			filteredAlbums = append(filteredAlbums, *album)
 		}
 	}
 	albums = filteredAlbums
 
-	// Sort albums by date (newest first) before generating HTML
+	// Sort albums by original photo dates (newest first)
 	SortAlbumsByDate(albums)
 
 	// Report HTML generation progress

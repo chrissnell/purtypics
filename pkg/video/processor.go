@@ -139,13 +139,20 @@ func (p *Processor) CopyVideoToStatic(videoPath, albumID, photoID string) (strin
 		return relPath, nil
 	}
 
-	// Copy video file
-	input, err := os.ReadFile(videoPath)
+	// Stream copy to avoid loading entire video into memory
+	src, err := os.Open(videoPath)
 	if err != nil {
 		return "", err
 	}
+	defer src.Close()
 
-	if err := os.WriteFile(destPath, input, 0644); err != nil {
+	dst, err := os.Create(destPath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	if _, err := dst.ReadFrom(src); err != nil {
 		return "", err
 	}
 

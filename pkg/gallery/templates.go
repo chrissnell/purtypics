@@ -91,66 +91,46 @@ main {
   width: 20%; /* 5 columns on desktop */
 }
 
-/* Album sizer not needed - albums use CSS Grid */
-
 .photo-item {
+  position: relative;
+  overflow: hidden;
   margin-bottom: 3px;
   float: left;
-}
-
-/* Reduce margin on mobile for better space usage */
-@media (max-width: 600px) {
-  .photo-item {
-    margin-bottom: 2px;
-  }
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: #f8f8f8;
+  display: block;
 }
 
 /* Responsive column widths */
 @media (max-width: 1200px) {
   .grid-sizer,
   .photo-item {
-    width: 25%; /* 4 columns on medium screens */
+    width: 25%; /* 4 columns */
   }
 }
 
 @media (max-width: 900px) {
   .grid-sizer,
   .photo-item {
-    width: 33.333%; /* 3 columns on tablets */
+    width: 33.333%; /* 3 columns */
   }
 }
 
 @media (max-width: 600px) {
   .grid-sizer,
   .photo-item {
-    width: 50%; /* 2 columns on large phones */
-  }
-}
-
-/* Specific handling for iPhone Pro Max and similar devices */
-@media (min-width: 414px) and (max-width: 600px) {
-  .grid-sizer,
-  .photo-item {
-    width: 50%; /* Ensure 2 columns on iPhone Pro Max */
+    width: 50%; /* 2 columns */
+    margin-bottom: 2px;
   }
 }
 
 @media (max-width: 380px) {
   .grid-sizer,
   .photo-item {
-    width: 100%; /* 1 column on small phones */
+    width: 100%; /* 1 column */
   }
-}
-
-/* Photo Items styling */
-.photo-item {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  background: #f8f8f8;
-  display: block;
 }
 
 /* Aspect ratio container to prevent reflow */
@@ -233,25 +213,13 @@ main {
 
 @media (max-width: 800px) {
   .album-item {
-    width: calc(50% - 10px); /* 2 columns with gap */
-  }
-  
-  .album-thumbnail {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
+    width: calc(50% - 10px); /* 2 columns */
   }
 }
 
 @media (max-width: 400px) {
   .album-item {
     width: 100%; /* 1 column */
-  }
-  
-  .album-thumbnail {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
   }
 }
 
@@ -713,94 +681,6 @@ function initLightbox() {
   });
 }
 
-// Lazy loading for images
-function initLazyLoad() {
-  const images = document.querySelectorAll('img[loading="lazy"]');
-  
-  if ('loading' in HTMLImageElement.prototype) {
-    // Browser supports native lazy loading
-    return;
-  }
-  
-  // Fallback for older browsers
-  const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        img.src = img.dataset.src;
-        img.classList.add('loaded');
-        observer.unobserve(img);
-      }
-    });
-  });
-  
-  images.forEach(img => imageObserver.observe(img));
-}
-
-// Infinite scroll
-let loading = false;
-let currentPage = 1;
-const photosPerPage = 50;
-
-function initInfiniteScroll() {
-  const grid = document.querySelector('.masonry-grid');
-  if (!grid) return;
-  
-  const photos = Array.from(grid.querySelectorAll('.photo-item'));
-  const totalPhotos = photos.length;
-  
-  // Initially hide photos beyond first page
-  photos.forEach((photo, index) => {
-    if (index >= photosPerPage) {
-      photo.style.display = 'none';
-    }
-  });
-  
-  window.addEventListener('scroll', () => {
-    if (loading) return;
-    
-    const scrollHeight = document.documentElement.scrollHeight;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const clientHeight = window.innerHeight;
-    
-    if (scrollTop + clientHeight >= scrollHeight - 200) {
-      loadMorePhotos(photos);
-    }
-  });
-}
-
-function loadMorePhotos(photos) {
-  loading = true;
-  
-  const start = currentPage * photosPerPage;
-  const end = Math.min(start + photosPerPage, photos.length);
-  
-  if (start >= photos.length) {
-    loading = false;
-    return;
-  }
-  
-  // Show loading indicator
-  const loadingDiv = document.createElement('div');
-  loadingDiv.className = 'loading';
-  loadingDiv.textContent = 'Loading more photos...';
-  document.querySelector('.masonry-container').appendChild(loadingDiv);
-  
-  // Simulate loading delay
-  setTimeout(() => {
-    for (let i = start; i < end; i++) {
-      photos[i].style.display = 'block';
-    }
-    
-    currentPage++;
-    loading = false;
-    loadingDiv.remove();
-    
-    // Reinitialize lightbox for new photos
-    initLightbox();
-  }, 300);
-}
-
 // Initialize Masonry
 function initMasonry() {
   // Photo gallery masonry
@@ -961,7 +841,6 @@ function initMap() {
 document.addEventListener('DOMContentLoaded', () => {
   initVideoHover();
   initLightbox();
-  initLazyLoad();
   initMasonry();
   initMap();
 });

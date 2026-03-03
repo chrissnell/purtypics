@@ -130,15 +130,8 @@ func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[strin
 
 		// Resize with Lanczos filter for best quality
 		resized := imaging.Resize(img, newWidth, newHeight, imaging.Lanczos)
-		
-		// Save as JPEG with high quality
-		out, err := os.Create(thumbPath)
-		if err != nil {
-			return nil, err
-		}
-		defer out.Close()
 
-		if err := jpeg.Encode(out, resized, &jpeg.Options{Quality: p.quality}); err != nil {
+		if err := saveJPEG(thumbPath, resized, p.quality); err != nil {
 			return nil, err
 		}
 
@@ -148,9 +141,19 @@ func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[strin
 	return thumbnails, nil
 }
 
+func saveJPEG(path string, img image.Image, quality int) error {
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	return jpeg.Encode(out, img, &jpeg.Options{Quality: quality})
+}
+
 // GetImageDimensions returns width and height of an image
-func GetImageDimensions(path string) (int, int, error) {
-	file, err := os.Open(path)
+func GetImageDimensions(imgPath string) (int, int, error) {
+	file, err := os.Open(imgPath)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -162,21 +165,4 @@ func GetImageDimensions(path string) (int, int, error) {
 	}
 
 	return config.Width, config.Height, nil
-}
-
-func copyFile(src, dst string) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-	destination, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-
-	_, err = destination.ReadFrom(source)
-	return err
 }
