@@ -2,6 +2,8 @@
 
 A fast, modern static photo gallery generator with built-in metadata editing.
 
+![Purtypics](.assets/purtypics.png)
+
 ## Features
 
 - **Static Generation**: Creates fast, self-contained HTML galleries
