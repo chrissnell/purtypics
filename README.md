@@ -2,6 +2,8 @@
 
 A fast, modern static photo gallery generator with built-in metadata editing.
 
+<a href="https://chrissnell.com" target="_blank">Check out a live Purtypics gallery</a>
+
 ![Purtypics](.assets/purtypics.png)
 
 ## Features
