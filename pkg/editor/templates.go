@@ -103,7 +103,7 @@ const editorHTML = `<!DOCTYPE html>
                             </div>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection (Dry Run)</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection (Dry Run)</span></button>
                                 <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
@@ -129,7 +129,7 @@ const editorHTML = `<!DOCTYPE html>
                             </div>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
                                 <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
@@ -155,7 +155,7 @@ const editorHTML = `<!DOCTYPE html>
                             </div>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary deploy-test-btn">Test Connection</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
                                 <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
                             </div>
                         </form>
