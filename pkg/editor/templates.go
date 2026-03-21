@@ -1705,65 +1705,52 @@ async function deployGallery(dryRun) {
         
         if (response.ok) {
             const result = await response.json();
-            
-            // For dry runs, just show success
-            if (dryRun) {
-                deployBtn.classList.remove('deploying');
-                deployBtn.classList.add('deployed');
-                buttonSpan.textContent = 'Test Successful!';
-                
-                setTimeout(() => {
-                    deployBtn.classList.remove('deployed');
-                    buttonSpan.textContent = originalText;
-                    deployBtn.disabled = false;
-                }, 3000);
-            } else {
-                // For actual deployments, show progress
-                // Poll for progress
-                let progress = 0;
-                
-                const pollProgress = async () => {
-                    try {
-                        const progressResponse = await fetch('/api/deploy/progress');
-                        const data = await progressResponse.json();
-                        
-                        progress = data.progress || 0;
-                        // Update progress text
-                        buttonSpan.textContent = 'Deploying... ' + Math.round(progress) + '%';
-                        
-                        if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'idle') {
-                            setTimeout(pollProgress, 500);
-                        } else if (data.status === 'completed') {
-                            // Transition to success state
-                            deployBtn.classList.remove('deploying');
-                            deployBtn.classList.add('deployed');
-                            buttonSpan.textContent = 'Deploy Complete!';
-                            
-                            setTimeout(() => {
-                                deployBtn.classList.remove('deployed');
-                                buttonSpan.textContent = originalText;
-                                deployBtn.disabled = false;
-                            }, 3000);
-                        } else if (data.status === 'error') {
-                            throw new Error(data.error || 'Deployment failed');
-                        }
-                    } catch (error) {
-                        console.error('Error polling progress:', error);
+
+            const successLabel = dryRun ? 'Test Successful!' : 'Deploy Complete!';
+            const failLabel = dryRun ? 'Test Failed' : 'Deploy Failed';
+            const progressLabel = dryRun ? 'Testing...' : 'Deploying...';
+
+            // Poll for progress
+            const pollProgress = async () => {
+                try {
+                    const progressResponse = await fetch('/api/deploy/progress');
+                    const data = await progressResponse.json();
+
+                    const progress = data.progress || 0;
+                    if (!dryRun) {
+                        buttonSpan.textContent = progressLabel + ' ' + Math.round(progress) + '%';
+                    }
+
+                    if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'idle') {
+                        setTimeout(pollProgress, 500);
+                    } else if (data.status === 'completed') {
                         deployBtn.classList.remove('deploying');
-                        deployBtn.classList.add('error');
-                        buttonSpan.textContent = 'Deploy Failed';
-                        
+                        deployBtn.classList.add('deployed');
+                        buttonSpan.textContent = successLabel;
+
                         setTimeout(() => {
-                            deployBtn.classList.remove('error');
+                            deployBtn.classList.remove('deployed');
                             buttonSpan.textContent = originalText;
                             deployBtn.disabled = false;
                         }, 3000);
+                    } else if (data.status === 'error') {
+                        throw new Error(data.error || 'Operation failed');
                     }
-                };
-                
-                // Start polling after a short delay
-                setTimeout(pollProgress, 500);
-            }
+                } catch (error) {
+                    console.error('Error polling progress:', error);
+                    deployBtn.classList.remove('deploying');
+                    deployBtn.classList.add('error');
+                    buttonSpan.textContent = failLabel;
+
+                    setTimeout(() => {
+                        deployBtn.classList.remove('error');
+                        buttonSpan.textContent = originalText;
+                        deployBtn.disabled = false;
+                    }, 3000);
+                }
+            };
+
+            setTimeout(pollProgress, 500);
         } else {
             const error = await response.text();
             console.error('Deployment error:', error);

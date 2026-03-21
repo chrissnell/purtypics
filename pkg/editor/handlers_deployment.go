@@ -10,10 +10,21 @@ import (
 	"github.com/cjs/purtypics/pkg/deploy"
 )
 
+type deployRequest struct {
+	Target string `json:"target"`
+	DryRun bool   `json:"dry_run"`
+}
+
 // handleDeploy starts deployment
 func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req deployRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -25,21 +36,23 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine deployment type
-	var deployType string
-	if config.Rsync != nil {
-		deployType = "rsync"
-		fmt.Printf("Deployment type: rsync to %s:%s\n", config.Rsync.Host, config.Rsync.Path)
-	} else if config.S3 != nil {
-		deployType = "s3"
-		fmt.Printf("Deployment type: S3\n")
-	} else if config.Cloudflare != nil {
-		deployType = "cloudflare"
-		fmt.Printf("Deployment type: Cloudflare Pages\n")
-	} else {
-		http.Error(w, "No deployment configuration found", http.StatusBadRequest)
-		return
+	// Determine deployment type from request or auto-detect.
+	deployType := req.Target
+	if deployType == "" {
+		switch {
+		case config.Rsync != nil:
+			deployType = "rsync"
+		case config.S3 != nil:
+			deployType = "s3"
+		case config.Cloudflare != nil:
+			deployType = "cloudflare"
+		default:
+			http.Error(w, "No deployment configuration found", http.StatusBadRequest)
+			return
+		}
 	}
+
+	fmt.Printf("Deployment type: %s (dry_run=%v)\n", deployType, req.DryRun)
 
 	// Check if output directory exists
 	outputPath := s.OutputPath
@@ -56,7 +69,7 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 	s.deployTracker.Update(0, "starting")
 
 	// Start deployment in background
-	go s.runDeployment(config, deployType)
+	go s.runDeployment(config, deployType, req.DryRun)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
@@ -80,11 +93,9 @@ func (s *Server) handleDeployProgress(w http.ResponseWriter, r *http.Request) {
 }
 
 // runDeployment runs the deployment process
-func (s *Server) runDeployment(config *deploy.Config, deployType string) {
-	// Update status
+func (s *Server) runDeployment(config *deploy.Config, deployType string, dryRun bool) {
 	s.deployTracker.Update(0, "deploying")
 
-	// Determine source path (generated gallery)
 	sourcePath := s.OutputPath
 	if sourcePath == "" {
 		sourcePath = filepath.Join(s.SourcePath, "output")
@@ -92,42 +103,58 @@ func (s *Server) runDeployment(config *deploy.Config, deployType string) {
 
 	fmt.Printf("Starting deployment from %s...\n", sourcePath)
 
-	// Create deployer based on type
 	switch deployType {
 	case "rsync":
 		if config.Rsync == nil {
 			s.deployTracker.SetError("Rsync configuration not found")
 			return
 		}
-		// Create rsync deployer
+		config.Rsync.DryRun = dryRun
 		deployer := deploy.NewRsyncDeployer(config.Rsync, sourcePath)
-		
-		// Set progress callback
 		deployer.SetProgressCallback(func(progress int, message string) {
 			s.deployTracker.Update(progress, message)
 		})
-		
-		// Run deployment
 		if err := deployer.Deploy(); err != nil {
 			s.deployTracker.SetError(fmt.Sprintf("Deployment failed: %v", err))
 			fmt.Printf("Deployment failed: %v\n", err)
 			return
 		}
-		
+
+	case "cloudflare":
+		if config.Cloudflare == nil {
+			s.deployTracker.SetError("Cloudflare configuration not found")
+			return
+		}
+		deployer, err := deploy.NewCloudflareDeployer(config.Cloudflare, sourcePath)
+		if err != nil {
+			s.deployTracker.SetError(err.Error())
+			return
+		}
+		deployer.SetProgressCallback(func(progress int, message string) {
+			s.deployTracker.Update(progress, message)
+		})
+		if dryRun {
+			if err := deployer.TestConnection(); err != nil {
+				s.deployTracker.SetError(fmt.Sprintf("Connection test failed: %v", err))
+				return
+			}
+		} else {
+			if err := deployer.Deploy(); err != nil {
+				s.deployTracker.SetError(fmt.Sprintf("Deployment failed: %v", err))
+				fmt.Printf("Deployment failed: %v\n", err)
+				return
+			}
+		}
+
 	case "s3":
 		s.deployTracker.SetError("S3 deployment not yet implemented")
 		return
-		
-	case "cloudflare":
-		s.deployTracker.SetError("Cloudflare deployment not yet implemented")
-		return
-		
+
 	default:
 		s.deployTracker.SetError(fmt.Sprintf("Unknown deployment type: %s", deployType))
 		return
 	}
 
-	// Update completion status
 	s.deployTracker.Update(100, "completed")
 	fmt.Printf("\nDeployment completed successfully!\n")
 }

@@ -100,8 +100,27 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		// When implemented, add: fmt.Printf("\nDeployment completed successfully!\n")
 		
 	case "cloudflare":
-		return fmt.Errorf("Cloudflare deployment not yet implemented")
-		// When implemented, add: fmt.Printf("\nDeployment completed successfully!\n")
+		if config.Cloudflare == nil {
+			return fmt.Errorf("cloudflare configuration not found in deploy.yaml")
+		}
+		deployer, err := deploy.NewCloudflareDeployer(config.Cloudflare, outputPath)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Deploying gallery to %s...\n", deployer.GetInfo())
+		if deployDryRun {
+			fmt.Println("(DRY RUN - testing connection)")
+			if err := deployer.TestConnection(); err != nil {
+				return err
+			}
+			fmt.Println("Connection test successful!")
+		} else {
+			if err := deployer.Deploy(); err != nil {
+				return err
+			}
+			fmt.Println("\nDeployment completed successfully!")
+		}
+		return nil
 		
 	default:
 		return fmt.Errorf("unknown deployment target: %s", deployTarget)
