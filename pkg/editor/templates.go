@@ -1671,6 +1671,9 @@ async function saveDeployConfig() {
 
 // Deploy gallery
 async function deployGallery(dryRun) {
+    // Save config before deploying/testing
+    await saveDeployConfig();
+
     // Get the active deployment tab
     const activeTab = document.querySelector('.deploy-tab-btn.active').getAttribute('data-deploy-tab');
     

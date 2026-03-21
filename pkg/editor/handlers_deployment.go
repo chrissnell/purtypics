@@ -54,14 +54,16 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Deployment type: %s (dry_run=%v)\n", deployType, req.DryRun)
 
-	// Check if output directory exists
+	// Check if output directory exists (not required for dry runs)
 	outputPath := s.OutputPath
 	if outputPath == "" {
 		outputPath = filepath.Join(s.SourcePath, "output")
 	}
-	if _, err := os.Stat(outputPath); err != nil {
-		http.Error(w, "Output directory not found. Please generate the gallery first.", http.StatusBadRequest)
-		return
+	if !req.DryRun {
+		if _, err := os.Stat(outputPath); err != nil {
+			http.Error(w, "Output directory not found. Please generate the gallery first.", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Reset progress
