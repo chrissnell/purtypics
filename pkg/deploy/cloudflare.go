@@ -297,7 +297,8 @@ func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
 // checkMissing sends file hashes to Cloudflare and returns a JWT for uploading
 // and the list of hashes that Cloudflare doesn't already have.
 func (c *CloudflareDeployer) checkMissing(hashes []string) (jwt string, missing []string, err error) {
-	apiURL := fmt.Sprintf("%s/pages/assets/check-missing", cloudflareAPIBase)
+	apiURL := fmt.Sprintf("%s/accounts/%s/pages/assets/check-missing",
+		cloudflareAPIBase, c.config.AccountID)
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"hashes": hashes,
@@ -415,7 +416,8 @@ func (c *CloudflareDeployer) uploadBatch(jwt string, batch []fileEntry) error {
 		return fmt.Errorf("finalizing multipart: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("%s/pages/assets/upload", cloudflareAPIBase)
+	apiURL := fmt.Sprintf("%s/accounts/%s/pages/assets/upload",
+		cloudflareAPIBase, c.config.AccountID)
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, &buf)
 	if err != nil {
