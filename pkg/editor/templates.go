@@ -144,16 +144,14 @@ const editorHTML = `<!DOCTYPE html>
                             <div class="form-group">
                                 <label for="cf-project">Project Name</label>
                                 <input type="text" id="cf-project" class="form-control" placeholder="my-gallery">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px; font-weight: normal;">
+                                    <input type="checkbox" id="cf-auto-create" checked>
+                                    <span style="font-size: 13px; color: var(--text-secondary);">Create project if it doesn't exist</span>
+                                </label>
                             </div>
                             <div class="form-group">
                                 <label for="cf-account">Account ID</label>
                                 <input type="text" id="cf-account" class="form-control" placeholder="023e105f4ecef8ad9ca31a8372d0c353">
-                            </div>
-                            <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                    <input type="checkbox" id="cf-auto-create" checked>
-                                    <span style="font-size: 14px;">Create project if it doesn't exist</span>
-                                </label>
                             </div>
                             <div class="form-group">
                                 <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set Cloudflare API token via environment variable:<br>
