@@ -168,7 +168,6 @@ func (c *CloudflareDeployer) Deploy() error {
 
 	c.progress(2, "Collecting files...")
 
-	// Collect all files to upload.
 	files, err := c.collectFiles()
 	if err != nil {
 		return fmt.Errorf("collecting files: %w", err)
@@ -177,87 +176,93 @@ func (c *CloudflareDeployer) Deploy() error {
 		return fmt.Errorf("no files found in output directory: %s", c.output)
 	}
 
-	c.progress(5, fmt.Sprintf("Uploading %d files...", len(files)))
+	c.progress(5, fmt.Sprintf("Preparing %d files...", len(files)))
 
-	// Build multipart body using a pipe so we don't buffer everything in memory.
-	pr, pw := io.Pipe()
-	writer := multipart.NewWriter(pw)
+	// Build multipart body to a temp file so we can retry and get clean errors.
+	tmpFile, err := os.CreateTemp("", "purtypics-deploy-*.bin")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
-	// Write multipart parts in a goroutine.
-	errCh := make(chan error, 1)
-	go func() {
-		defer pw.Close()
-		defer writer.Close()
+	writer := multipart.NewWriter(tmpFile)
 
-		for i, relPath := range files {
-			absPath := filepath.Join(c.output, relPath)
-			f, err := os.Open(absPath)
-			if err != nil {
-				errCh <- fmt.Errorf("opening %s: %w", relPath, err)
-				return
-			}
+	// Add branch field first if configured.
+	if c.config.Branch != "" {
+		if err := writer.WriteField("branch", c.config.Branch); err != nil {
+			return fmt.Errorf("writing branch field: %w", err)
+		}
+	}
 
-			// Cloudflare expects the part name to be the path with leading slash.
-			partName := "/" + relPath
-			part, err := writer.CreateFormFile(partName, filepath.Base(relPath))
-			if err != nil {
-				f.Close()
-				errCh <- fmt.Errorf("creating form part for %s: %w", relPath, err)
-				return
-			}
+	for i, relPath := range files {
+		absPath := filepath.Join(c.output, relPath)
+		f, err := os.Open(absPath)
+		if err != nil {
+			return fmt.Errorf("opening %s: %w", relPath, err)
+		}
 
-			if _, err := io.Copy(part, f); err != nil {
-				f.Close()
-				errCh <- fmt.Errorf("writing %s: %w", relPath, err)
-				return
-			}
+		// Cloudflare expects the part name to be the path with leading slash.
+		partName := "/" + relPath
+		part, err := writer.CreateFormFile(partName, filepath.Base(relPath))
+		if err != nil {
 			f.Close()
-
-			// Report progress (5% to 90% range for uploads).
-			pct := 5 + (85 * (i + 1) / len(files))
-			c.progress(pct, fmt.Sprintf("Uploading %d/%d files...", i+1, len(files)))
+			return fmt.Errorf("creating form part for %s: %w", relPath, err)
 		}
 
-		// Add branch if configured.
-		if c.config.Branch != "" {
-			if err := writer.WriteField("branch", c.config.Branch); err != nil {
-				errCh <- fmt.Errorf("writing branch field: %w", err)
-				return
-			}
+		if _, err := io.Copy(part, f); err != nil {
+			f.Close()
+			return fmt.Errorf("writing %s: %w", relPath, err)
 		}
+		f.Close()
 
-		errCh <- nil
-	}()
+		pct := 5 + (45 * (i + 1) / len(files))
+		c.progress(pct, fmt.Sprintf("Preparing %d/%d files...", i+1, len(files)))
+	}
 
-	// Send the request.
-	url := fmt.Sprintf("%s/accounts/%s/pages/projects/%s/deployments",
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("finalizing multipart body: %w", err)
+	}
+
+	// Seek back to start for reading.
+	if _, err := tmpFile.Seek(0, 0); err != nil {
+		return fmt.Errorf("seeking temp file: %w", err)
+	}
+
+	stat, err := tmpFile.Stat()
+	if err != nil {
+		return fmt.Errorf("stat temp file: %w", err)
+	}
+
+	c.progress(55, fmt.Sprintf("Uploading %d files to Cloudflare...", len(files)))
+
+	apiURL := fmt.Sprintf("%s/accounts/%s/pages/projects/%s/deployments",
 		cloudflareAPIBase, c.config.AccountID, c.config.Project)
 
-	req, err := http.NewRequest(http.MethodPost, url, pr)
+	req, err := http.NewRequest(http.MethodPost, apiURL, tmpFile)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.ContentLength = stat.Size()
 
-	c.progress(90, "Waiting for Cloudflare...")
+	c.progress(60, "Uploading to Cloudflare...")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		// Drain the writer goroutine error too.
-		<-errCh
 		return fmt.Errorf("uploading to Cloudflare: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check the writer goroutine for errors.
-	if writeErr := <-errCh; writeErr != nil {
-		return writeErr
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response: %w", err)
 	}
 
 	var cfResp cloudflareResponse
-	if err := json.NewDecoder(resp.Body).Decode(&cfResp); err != nil {
-		return fmt.Errorf("decoding Cloudflare response: %w", err)
+	if err := json.Unmarshal(body, &cfResp); err != nil {
+		return fmt.Errorf("decoding response (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	if !cfResp.Success {
