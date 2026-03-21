@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -58,12 +59,20 @@ type deploymentResult struct {
 	URL string `json:"url"`
 }
 
-// fileEntry tracks a file for upload.
+// fileEntry tracks a file for upload to Pages.
 type fileEntry struct {
 	path        string // relative path with forward slashes
 	hash        string // 32-char hex blake3 hash
 	b64Content  string // base64-encoded file content
 	size        int64  // original file size
+	contentType string
+}
+
+// largeFileEntry tracks a file too large for Pages (>25 MiB).
+type largeFileEntry struct {
+	path        string // relative path with forward slashes
+	absPath     string // absolute filesystem path
+	size        int64
 	contentType string
 }
 
@@ -171,13 +180,11 @@ func (c *CloudflareDeployer) createProject() error {
 
 // Deploy uploads the output directory to Cloudflare Pages.
 //
-// Follows the same flow as Wrangler:
-//  1. Hash all files (blake3 of base64(content) + extension, truncated to 32 hex chars)
-//  2. Get upload JWT
-//  3. Check which files Cloudflare already has
-//  4. Upload missing files in buckets
-//  5. Register all hashes
-//  6. Create deployment with manifest
+// Flow:
+//  1. Hash files, separating small (≤25 MiB) from large (>25 MiB)
+//  2. If R2 enabled: upload large files to R2, rewrite HTML references
+//  3. Upload small files to Pages (upload-token → check-missing → upload → upsert-hashes)
+//  4. Create deployment with manifest
 func (c *CloudflareDeployer) Deploy() error {
 	if err := c.validate(); err != nil {
 		return err
@@ -188,13 +195,24 @@ func (c *CloudflareDeployer) Deploy() error {
 		return err
 	}
 
-	c.progress(2, "Hashing files...")
-	entries, err := c.hashFiles()
+	c.progress(2, "Scanning files...")
+	entries, largeFiles, err := c.collectFiles()
 	if err != nil {
-		return fmt.Errorf("hashing files: %w", err)
+		return fmt.Errorf("scanning files: %w", err)
 	}
-	if len(entries) == 0 {
+	if len(entries) == 0 && len(largeFiles) == 0 {
 		return fmt.Errorf("no files found in output directory: %s", c.output)
+	}
+
+	// Handle large files: upload to R2 or warn.
+	if len(largeFiles) > 0 {
+		if err := c.handleLargeFiles(largeFiles, entries); err != nil {
+			return err
+		}
+	}
+
+	if len(entries) == 0 {
+		return fmt.Errorf("no files to deploy to Pages (all files exceed 25 MiB limit)")
 	}
 
 	// Build manifest and collect all hashes.
@@ -205,13 +223,13 @@ func (c *CloudflareDeployer) Deploy() error {
 		allHashes = append(allHashes, e.hash)
 	}
 
-	c.progress(5, "Getting upload token...")
+	c.progress(30, "Getting upload token...")
 	jwt, err := c.getUploadToken()
 	if err != nil {
 		return fmt.Errorf("getting upload token: %w", err)
 	}
 
-	c.progress(8, "Checking which files need uploading...")
+	c.progress(33, "Checking which files need uploading...")
 	missing, err := c.checkMissing(jwt, allHashes)
 	if err != nil {
 		return fmt.Errorf("checking missing files: %w", err)
@@ -229,7 +247,7 @@ func (c *CloudflareDeployer) Deploy() error {
 		}
 	}
 
-	c.progress(12, fmt.Sprintf("Uploading %d/%d files...", len(toUpload), len(entries)))
+	c.progress(36, fmt.Sprintf("Uploading %d/%d files to Pages...", len(toUpload), len(entries)))
 
 	if len(toUpload) > 0 {
 		if err := c.uploadBuckets(jwt, toUpload, len(entries)); err != nil {
@@ -237,12 +255,12 @@ func (c *CloudflareDeployer) Deploy() error {
 		}
 	}
 
-	c.progress(82, "Registering files...")
+	c.progress(88, "Registering files...")
 	if err := c.upsertHashes(jwt, allHashes); err != nil {
 		return fmt.Errorf("registering hashes: %w", err)
 	}
 
-	c.progress(88, "Creating deployment...")
+	c.progress(92, "Creating deployment...")
 	deployURL, err := c.createDeployment(manifest)
 	if err != nil {
 		return fmt.Errorf("creating deployment: %w", err)
@@ -258,19 +276,143 @@ func (c *CloudflareDeployer) Deploy() error {
 	return nil
 }
 
-// hashFiles walks the output directory, reads each file, and computes
-// blake3 hashes matching Wrangler's algorithm: blake3(base64(content) + ext)[:32].
-func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
+// handleLargeFiles either uploads large files to R2 and rewrites HTML, or warns.
+func (c *CloudflareDeployer) handleLargeFiles(largeFiles []largeFileEntry, entries []fileEntry) error {
+	r2Enabled := c.config.R2 != nil && c.config.R2.Enabled
+
+	if !r2Enabled {
+		var totalSize int64
+		for _, f := range largeFiles {
+			totalSize += f.size
+			fmt.Printf("  Skipping %s (%.1f MiB)\n", f.path, float64(f.size)/(1024*1024))
+		}
+		fmt.Printf("WARNING: %d file(s) (%.1f MiB total) exceed the 25 MiB Pages limit and will not be deployed.\n",
+			len(largeFiles), float64(totalSize)/(1024*1024))
+		fmt.Println("Enable R2 in deployment settings to upload large files to Cloudflare R2.")
+		return nil
+	}
+
+	ctx := context.Background()
+
+	c.progress(5, "Connecting to R2...")
+	r2, err := NewR2Client(c.config.AccountID)
+	if err != nil {
+		return fmt.Errorf("R2 setup: %w", err)
+	}
+
+	bucket := c.config.R2.Bucket
+	if bucket == "" {
+		bucket = c.config.Project + "-assets"
+	}
+
+	c.progress(7, "Ensuring R2 bucket...")
+	if err := r2.EnsureBucket(ctx, bucket); err != nil {
+		return fmt.Errorf("R2 bucket: %w", err)
+	}
+
+	if err := r2.EnablePublicAccess(ctx, bucket); err != nil {
+		return fmt.Errorf("R2 public access: %w", err)
+	}
+
+	publicBaseURL, err := r2.GetPublicURL(ctx, bucket, c.config.R2.CustomDomain)
+	if err != nil {
+		return fmt.Errorf("R2 public URL: %w", err)
+	}
+	publicBaseURL = strings.TrimRight(publicBaseURL, "/")
+
+	// Upload large files to R2.
+	replacements := make(map[string]string) // relative path -> R2 URL
+	for i, f := range largeFiles {
+		c.progress(10+15*i/len(largeFiles),
+			fmt.Sprintf("Uploading to R2: %s (%.1f MiB)...", f.path, float64(f.size)/(1024*1024)))
+
+		key := f.path // use same relative path as key
+		if err := r2.UploadFile(ctx, bucket, key, f.absPath); err != nil {
+			return fmt.Errorf("R2 upload %s: %w", f.path, err)
+		}
+
+		r2URL := publicBaseURL + "/" + key
+		replacements[f.path] = r2URL
+		fmt.Printf("  Uploaded %s -> %s\n", f.path, r2URL)
+	}
+
+	// Rewrite HTML files to reference R2 URLs instead of local paths.
+	if len(replacements) > 0 {
+		c.progress(25, "Rewriting HTML references...")
+		c.rewriteHTMLEntries(entries, replacements)
+	}
+
+	return nil
+}
+
+// rewriteHTMLEntries replaces local file paths with R2 URLs in HTML file entries.
+func (c *CloudflareDeployer) rewriteHTMLEntries(entries []fileEntry, replacements map[string]string) {
+	for i, entry := range entries {
+		if !strings.HasSuffix(entry.path, ".html") {
+			continue
+		}
+
+		// Decode the base64 content.
+		content, err := base64.StdEncoding.DecodeString(entry.b64Content)
+		if err != nil {
+			continue
+		}
+
+		html := string(content)
+		modified := false
+
+		for relPath, r2URL := range replacements {
+			// Templates use paths like "../static/videos/album/file.mov"
+			// or "/static/videos/album/file.mov". Replace all variants.
+			variants := []string{
+				"../" + relPath,         // from album pages: ../static/videos/...
+				"./" + relPath,          // from index: ./static/videos/...
+				"/" + relPath,           // absolute: /static/videos/...
+				"\"" + relPath + "\"",   // bare in attributes
+			}
+			for _, v := range variants {
+				if strings.Contains(html, v) {
+					// For quoted variants, keep the quotes
+					if strings.HasPrefix(v, "\"") {
+						html = strings.ReplaceAll(html, v, "\""+r2URL+"\"")
+					} else {
+						html = strings.ReplaceAll(html, v, r2URL)
+					}
+					modified = true
+				}
+			}
+		}
+
+		if modified {
+			newB64 := base64.StdEncoding.EncodeToString([]byte(html))
+
+			// Recompute blake3 hash.
+			ext := filepath.Ext(entry.path)
+			if len(ext) > 0 {
+				ext = ext[1:]
+			}
+			h := blake3.Sum256([]byte(newB64 + ext))
+			newHash := hex.EncodeToString(h[:])[:32]
+
+			entries[i].b64Content = newB64
+			entries[i].hash = newHash
+			entries[i].size = int64(len(html))
+		}
+	}
+}
+
+// collectFiles walks the output directory, hashing small files for Pages
+// and collecting large files separately.
+func (c *CloudflareDeployer) collectFiles() ([]fileEntry, []largeFileEntry, error) {
 	var entries []fileEntry
+	var largeFiles []largeFileEntry
+
 	err := filepath.Walk(c.output, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() {
 			return nil
-		}
-		if info.Size() > maxAssetSize {
-			return fmt.Errorf("file %s exceeds 25 MiB limit (%d bytes)", path, info.Size())
 		}
 
 		rel, err := filepath.Rel(c.output, path)
@@ -280,6 +422,22 @@ func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
 		rel = filepath.ToSlash(rel)
 
 		if rel == "gallery.yaml" || rel == "deploy.yaml" {
+			return nil
+		}
+
+		ct := mime.TypeByExtension(filepath.Ext(path))
+		if ct == "" {
+			ct = "application/octet-stream"
+		}
+
+		// Large files go to the separate list.
+		if info.Size() > maxAssetSize {
+			largeFiles = append(largeFiles, largeFileEntry{
+				path:        rel,
+				absPath:     path,
+				size:        info.Size(),
+				contentType: ct,
+			})
 			return nil
 		}
 
@@ -298,11 +456,6 @@ func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
 		h := blake3.Sum256([]byte(b64 + ext))
 		hash := hex.EncodeToString(h[:])[:32]
 
-		ct := mime.TypeByExtension(filepath.Ext(path))
-		if ct == "" {
-			ct = "application/octet-stream"
-		}
-
 		entries = append(entries, fileEntry{
 			path:        rel,
 			hash:        hash,
@@ -312,7 +465,7 @@ func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
 		})
 		return nil
 	})
-	return entries, err
+	return entries, largeFiles, err
 }
 
 // getUploadToken retrieves a JWT for uploading and managing assets.
@@ -400,7 +553,7 @@ func (c *CloudflareDeployer) uploadBuckets(jwt string, files []fileEntry, totalF
 		}
 
 		uploaded += len(bucket)
-		pct := 12 + (70 * uploaded / totalFiles)
+		pct := 36 + (52 * uploaded / totalFiles)
 		c.progress(pct, fmt.Sprintf("Uploaded %d/%d files...", uploaded, len(files)))
 
 		batchStart += len(bucket)

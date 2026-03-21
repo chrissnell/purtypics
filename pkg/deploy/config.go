@@ -35,10 +35,18 @@ type S3Config struct {
 
 // CloudflareConfig represents Cloudflare Pages deployment configuration
 type CloudflareConfig struct {
-	Project    string `yaml:"project" json:"project"`
-	AccountID  string `yaml:"account_id" json:"account_id"`
-	Branch     string `yaml:"branch,omitempty" json:"branch,omitempty"`
-	AutoCreate bool   `yaml:"auto_create,omitempty" json:"auto_create,omitempty"`
+	Project    string    `yaml:"project" json:"project"`
+	AccountID  string    `yaml:"account_id" json:"account_id"`
+	Branch     string    `yaml:"branch,omitempty" json:"branch,omitempty"`
+	AutoCreate bool      `yaml:"auto_create,omitempty" json:"auto_create,omitempty"`
+	R2         *R2Config `yaml:"r2,omitempty" json:"r2,omitempty"`
+}
+
+// R2Config represents Cloudflare R2 configuration for large file storage
+type R2Config struct {
+	Enabled      bool   `yaml:"enabled" json:"enabled"`
+	Bucket       string `yaml:"bucket,omitempty" json:"bucket,omitempty"`                 // defaults to {project}-assets
+	CustomDomain string `yaml:"custom_domain,omitempty" json:"custom_domain,omitempty"`   // e.g. assets.mysite.com
 }
 
 // LoadConfig loads deployment configuration from deploy.yaml

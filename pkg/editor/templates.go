@@ -157,6 +157,41 @@ const editorHTML = `<!DOCTYPE html>
                                 <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set Cloudflare API token via environment variable:<br>
                                 <code>CLOUDFLARE_API_TOKEN</code></p>
                             </div>
+
+                            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+                            <div class="form-group">
+                                <p style="margin: 0 0 8px; font-size: 13px; color: var(--text-secondary);">
+                                    Cloudflare Pages has a 25 MiB per-file limit. Videos and other large files
+                                    won't be deployed unless R2 is enabled below.
+                                </p>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" id="cf-r2-enabled" onchange="document.getElementById('cf-r2-fields').style.display = this.checked ? 'block' : 'none'">
+                                    <span>Upload large files to Cloudflare R2</span>
+                                </label>
+                            </div>
+                            <div id="cf-r2-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="cf-r2-bucket">R2 Bucket Name <span style="font-weight: normal; color: var(--text-secondary);">(optional, defaults to project-assets)</span></label>
+                                    <input type="text" id="cf-r2-bucket" class="form-control" placeholder="my-gallery-assets">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cf-r2-domain">Custom Domain <span style="font-weight: normal; color: var(--text-secondary);">(optional)</span></label>
+                                    <input type="text" id="cf-r2-domain" class="form-control" placeholder="assets.mysite.com">
+                                    <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-secondary);">
+                                        Leave blank to use the default r2.dev subdomain.
+                                    </p>
+                                </div>
+                                <div class="form-group">
+                                    <p style="margin: 5px 0; font-size: 13px; color: var(--text-secondary);">
+                                        Set R2 credentials via environment variables:<br>
+                                        <code>R2_ACCESS_KEY_ID</code> and <code>R2_SECRET_ACCESS_KEY</code><br>
+                                        <a href="https://developers.cloudflare.com/r2/pricing/" target="_blank" style="color: var(--accent-color);">R2 pricing details</a>
+                                        — R2 includes 10 GB free storage and 10 million free reads/month.
+                                    </p>
+                                </div>
+                            </div>
+
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
                                 <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
@@ -1592,6 +1627,12 @@ async function loadDeployConfig() {
             if (config.cloudflare.auto_create !== undefined) {
                 document.getElementById('cf-auto-create').checked = config.cloudflare.auto_create;
             }
+            if (config.cloudflare.r2) {
+                document.getElementById('cf-r2-enabled').checked = config.cloudflare.r2.enabled || false;
+                document.getElementById('cf-r2-bucket').value = config.cloudflare.r2.bucket || '';
+                document.getElementById('cf-r2-domain').value = config.cloudflare.r2.custom_domain || '';
+                document.getElementById('cf-r2-fields').style.display = config.cloudflare.r2.enabled ? 'block' : 'none';
+            }
         }
         // Default project name from gallery title if empty
         if (!document.getElementById('cf-project').value) {
@@ -1627,7 +1668,12 @@ async function saveDeployConfig() {
         cloudflare: {
             project: document.getElementById('cf-project').value,
             account_id: document.getElementById('cf-account').value,
-            auto_create: document.getElementById('cf-auto-create').checked
+            auto_create: document.getElementById('cf-auto-create').checked,
+            r2: {
+                enabled: document.getElementById('cf-r2-enabled').checked,
+                bucket: document.getElementById('cf-r2-bucket').value,
+                custom_domain: document.getElementById('cf-r2-domain').value
+            }
         }
     };
     
