@@ -322,6 +322,10 @@ func (c *CloudflareDeployer) checkMissing(hashes []string) (jwt string, missing 
 		return "", nil, fmt.Errorf("reading response: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return "", nil, fmt.Errorf("check-missing failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
 	var cfResp cloudflareResponse
 	if err := json.Unmarshal(body, &cfResp); err != nil {
 		return "", nil, fmt.Errorf("decoding response (status %d): %s", resp.StatusCode, string(body))
