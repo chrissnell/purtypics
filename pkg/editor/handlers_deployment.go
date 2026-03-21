@@ -147,8 +147,26 @@ func (s *Server) runDeployment(config *deploy.Config, deployType string, dryRun 
 		}
 
 	case "s3":
-		s.deployTracker.SetError("S3 deployment not yet implemented")
-		return
+		if config.S3 == nil {
+			s.deployTracker.SetError("S3 configuration not found")
+			return
+		}
+		s3Deployer := deploy.NewS3Deployer(config.S3, sourcePath)
+		s3Deployer.SetProgressCallback(func(progress int, message string) {
+			s.deployTracker.Update(progress, message)
+		})
+		if dryRun {
+			if err := s3Deployer.TestConnection(); err != nil {
+				s.deployTracker.SetError(fmt.Sprintf("Connection test failed: %v", err))
+				return
+			}
+		} else {
+			if err := s3Deployer.Deploy(); err != nil {
+				s.deployTracker.SetError(fmt.Sprintf("Deployment failed: %v", err))
+				fmt.Printf("Deployment failed: %v\n", err)
+				return
+			}
+		}
 
 	default:
 		s.deployTracker.SetError(fmt.Sprintf("Unknown deployment type: %s", deployType))

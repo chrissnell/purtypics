@@ -96,8 +96,24 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return nil
 		
 	case "s3":
-		return fmt.Errorf("S3 deployment not yet implemented")
-		// When implemented, add: fmt.Printf("\nDeployment completed successfully!\n")
+		if config.S3 == nil {
+			return fmt.Errorf("S3 configuration not found in deploy.yaml")
+		}
+		s3Deployer := deploy.NewS3Deployer(config.S3, outputPath)
+		fmt.Printf("Deploying gallery to %s...\n", s3Deployer.GetInfo())
+		if deployDryRun {
+			fmt.Println("(DRY RUN - testing connection)")
+			if err := s3Deployer.TestConnection(); err != nil {
+				return err
+			}
+			fmt.Println("Connection test successful!")
+		} else {
+			if err := s3Deployer.Deploy(); err != nil {
+				return err
+			}
+			fmt.Println("\nDeployment completed successfully!")
+		}
+		return nil
 		
 	case "cloudflare":
 		if config.Cloudflare == nil {
