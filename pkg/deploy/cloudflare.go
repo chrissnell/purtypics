@@ -46,14 +46,10 @@ type cloudflareMessage struct {
 	Message string `json:"message"`
 }
 
+// deploymentResult is the result from creating a deployment.
 type deploymentResult struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
-}
-
-// uploadToken is returned by the check-missing endpoint.
-type uploadToken struct {
-	JWT string `json:"jwt"`
 }
 
 // fileEntry tracks a file's path, hash, and size for upload planning.
@@ -174,7 +170,13 @@ func (c *CloudflareDeployer) createProject() error {
 }
 
 // Deploy uploads the output directory to Cloudflare Pages using the Direct Upload API.
-// This uses the batched upload flow: hash files, upload in chunks, create deployment.
+//
+// The flow is:
+//  1. Hash all files and build a manifest (path -> content hash)
+//  2. Create a deployment with the manifest — Cloudflare returns a JWT and the
+//     list of file hashes it doesn't already have
+//  3. Upload only the missing files in batches using the JWT
+//  4. Complete the deployment
 func (c *CloudflareDeployer) Deploy() error {
 	if err := c.validate(); err != nil {
 		return err
@@ -197,18 +199,16 @@ func (c *CloudflareDeployer) Deploy() error {
 
 	// Build the manifest: path -> hash.
 	manifest := make(map[string]string, len(entries))
-	hashes := make([]string, 0, len(entries))
 	for _, e := range entries {
 		manifest["/"+e.path] = e.hash
-		hashes = append(hashes, e.hash)
 	}
 
-	c.progress(10, "Checking which files need uploading...")
+	c.progress(10, "Creating deployment...")
 
-	// Ask Cloudflare which files it already has.
-	jwt, missing, err := c.checkMissing(hashes)
+	// Create the deployment — returns JWT and missing hashes.
+	jwt, missing, err := c.createDeployment(manifest)
 	if err != nil {
-		return fmt.Errorf("checking missing files: %w", err)
+		return fmt.Errorf("creating deployment: %w", err)
 	}
 
 	// Build a set of missing hashes for quick lookup.
@@ -234,12 +234,12 @@ func (c *CloudflareDeployer) Deploy() error {
 		}
 	}
 
-	c.progress(85, "Creating deployment...")
+	c.progress(90, "Finalizing deployment...")
 
-	// Create the deployment with the manifest.
-	deployURL, err := c.createDeployment(manifest)
+	// Complete the deployment.
+	deployURL, err := c.completeDeployment(jwt)
 	if err != nil {
-		return fmt.Errorf("creating deployment: %w", err)
+		return fmt.Errorf("completing deployment: %w", err)
 	}
 
 	if deployURL != "" {
@@ -294,22 +294,42 @@ func (c *CloudflareDeployer) hashFiles() ([]fileEntry, error) {
 	return entries, err
 }
 
-// checkMissing sends file hashes to Cloudflare and returns a JWT for uploading
-// and the list of hashes that Cloudflare doesn't already have.
-func (c *CloudflareDeployer) checkMissing(hashes []string) (jwt string, missing []string, err error) {
-	apiURL := fmt.Sprintf("%s/accounts/%s/pages/assets/check-missing",
-		cloudflareAPIBase, c.config.AccountID)
+// createDeployment creates a new deployment with the file manifest.
+// It returns a JWT for uploading files and the list of hashes Cloudflare
+// doesn't already have (missing files that need uploading).
+func (c *CloudflareDeployer) createDeployment(manifest map[string]string) (jwt string, missing []string, err error) {
+	apiURL := fmt.Sprintf("%s/accounts/%s/pages/projects/%s/deployments",
+		cloudflareAPIBase, c.config.AccountID, c.config.Project)
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"hashes": hashes,
-	})
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
 
-	req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewReader(payload))
+	// Add manifest as a JSON field.
+	manifestJSON, err := json.Marshal(manifest)
+	if err != nil {
+		return "", nil, fmt.Errorf("marshaling manifest: %w", err)
+	}
+	if err := writer.WriteField("manifest", string(manifestJSON)); err != nil {
+		return "", nil, fmt.Errorf("writing manifest field: %w", err)
+	}
+
+	// Add branch if configured.
+	if c.config.Branch != "" {
+		if err := writer.WriteField("branch", c.config.Branch); err != nil {
+			return "", nil, fmt.Errorf("writing branch field: %w", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return "", nil, fmt.Errorf("finalizing multipart: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, apiURL, &buf)
 	if err != nil {
 		return "", nil, fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -323,19 +343,19 @@ func (c *CloudflareDeployer) checkMissing(hashes []string) (jwt string, missing 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", nil, fmt.Errorf("check-missing failed (HTTP %d): %s", resp.StatusCode, string(body))
+		return "", nil, fmt.Errorf("create deployment failed (HTTP %d): %s", resp.StatusCode, string(body))
 	}
 
 	var cfResp cloudflareResponse
 	if err := json.Unmarshal(body, &cfResp); err != nil {
-		return "", nil, fmt.Errorf("decoding response (status %d): %s", resp.StatusCode, string(body))
+		return "", nil, fmt.Errorf("decoding response: %s", string(body))
 	}
 
 	if !cfResp.Success {
-		return "", nil, fmt.Errorf("check-missing failed: %s", formatErrors(cfResp.Errors))
+		return "", nil, fmt.Errorf("create deployment failed: %s", formatErrors(cfResp.Errors))
 	}
 
-	// Parse the JWT from messages.
+	// The JWT for uploading is in the messages.
 	for _, msg := range cfResp.Messages {
 		if msg.Message != "" {
 			jwt = msg.Message
@@ -343,12 +363,18 @@ func (c *CloudflareDeployer) checkMissing(hashes []string) (jwt string, missing 
 		}
 	}
 	if jwt == "" {
-		return "", nil, fmt.Errorf("no upload JWT returned from check-missing")
+		return "", nil, fmt.Errorf("no upload JWT returned from deployment creation")
 	}
 
-	// Parse missing hashes from result.
+	// The result contains the missing hashes as a string array.
 	if err := json.Unmarshal(cfResp.Result, &missing); err != nil {
-		return "", nil, fmt.Errorf("parsing missing hashes: %w", err)
+		// If result isn't a string array, all files may need uploading.
+		// Try parsing as deployment result (no missing files).
+		var dr deploymentResult
+		if err2 := json.Unmarshal(cfResp.Result, &dr); err2 == nil {
+			return jwt, nil, nil
+		}
+		return "", nil, fmt.Errorf("parsing deployment result: %w (body: %s)", err, string(body))
 	}
 
 	return jwt, missing, nil
@@ -441,9 +467,13 @@ func (c *CloudflareDeployer) uploadBatch(jwt string, batch []fileEntry) error {
 		return fmt.Errorf("reading response: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("upload failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
 	var cfResp cloudflareResponse
 	if err := json.Unmarshal(body, &cfResp); err != nil {
-		return fmt.Errorf("decoding response (status %d): %s", resp.StatusCode, string(body))
+		return fmt.Errorf("decoding response: %s", string(body))
 	}
 
 	if !cfResp.Success {
@@ -453,44 +483,27 @@ func (c *CloudflareDeployer) uploadBatch(jwt string, batch []fileEntry) error {
 	return nil
 }
 
-// createDeployment creates a deployment with the file manifest.
-func (c *CloudflareDeployer) createDeployment(manifest map[string]string) (string, error) {
+// completeDeployment signals that all uploads are done. This is a PATCH
+// to the deployment endpoint with an empty body.
+func (c *CloudflareDeployer) completeDeployment(jwt string) (string, error) {
 	apiURL := fmt.Sprintf("%s/accounts/%s/pages/projects/%s/deployments",
 		cloudflareAPIBase, c.config.AccountID, c.config.Project)
 
+	// PATCH with empty multipart to signal completion.
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
+	writer.Close()
 
-	// Add manifest as a JSON field.
-	manifestJSON, err := json.Marshal(manifest)
-	if err != nil {
-		return "", fmt.Errorf("marshaling manifest: %w", err)
-	}
-	if err := writer.WriteField("manifest", string(manifestJSON)); err != nil {
-		return "", fmt.Errorf("writing manifest field: %w", err)
-	}
-
-	// Add branch if configured.
-	if c.config.Branch != "" {
-		if err := writer.WriteField("branch", c.config.Branch); err != nil {
-			return "", fmt.Errorf("writing branch field: %w", err)
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		return "", fmt.Errorf("finalizing multipart: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, apiURL, &buf)
+	req, err := http.NewRequest(http.MethodPatch, apiURL, &buf)
 	if err != nil {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("creating deployment: %w", err)
+		return "", fmt.Errorf("completing deployment: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -499,13 +512,19 @@ func (c *CloudflareDeployer) createDeployment(manifest map[string]string) (strin
 		return "", fmt.Errorf("reading response: %w", err)
 	}
 
+	// Some API versions return 200, some 201 for completion.
+	if resp.StatusCode >= 300 {
+		return "", fmt.Errorf("complete deployment failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
 	var cfResp cloudflareResponse
 	if err := json.Unmarshal(body, &cfResp); err != nil {
-		return "", fmt.Errorf("decoding response (status %d): %s", resp.StatusCode, string(body))
+		// If we can't parse the response but got a 2xx, consider it success.
+		return "", nil
 	}
 
 	if !cfResp.Success {
-		return "", fmt.Errorf("deployment creation failed: %s", formatErrors(cfResp.Errors))
+		return "", fmt.Errorf("complete deployment failed: %s", formatErrors(cfResp.Errors))
 	}
 
 	var result deploymentResult
