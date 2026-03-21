@@ -35,9 +35,10 @@ type S3Config struct {
 
 // CloudflareConfig represents Cloudflare Pages deployment configuration
 type CloudflareConfig struct {
-	Project   string `yaml:"project" json:"project"`
-	AccountID string `yaml:"account_id" json:"account_id"`
-	Branch    string `yaml:"branch,omitempty" json:"branch,omitempty"`
+	Project    string `yaml:"project" json:"project"`
+	AccountID  string `yaml:"account_id" json:"account_id"`
+	Branch     string `yaml:"branch,omitempty" json:"branch,omitempty"`
+	AutoCreate bool   `yaml:"auto_create,omitempty" json:"auto_create,omitempty"`
 }
 
 // LoadConfig loads deployment configuration from deploy.yaml

@@ -64,19 +64,77 @@ func (c *CloudflareDeployer) SetProgressCallback(fn func(int, string)) {
 }
 
 // TestConnection verifies that the API token is valid and the project exists.
+// If AutoCreate is enabled and the project doesn't exist, it will be created.
 func (c *CloudflareDeployer) TestConnection() error {
 	if err := c.validate(); err != nil {
 		return err
 	}
+	return c.ensureProject()
+}
 
+// ensureProject checks if the project exists and creates it if AutoCreate is set.
+func (c *CloudflareDeployer) ensureProject() error {
+	exists, err := c.projectExists()
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	if !c.config.AutoCreate {
+		return fmt.Errorf("project %q not found (enable auto-create to create it)", c.config.Project)
+	}
+	return c.createProject()
+}
+
+// projectExists checks whether the Pages project exists.
+func (c *CloudflareDeployer) projectExists() (bool, error) {
 	url := fmt.Sprintf("%s/accounts/%s/pages/projects/%s",
 		cloudflareAPIBase, c.config.AccountID, c.config.Project)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
+		return false, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("connecting to Cloudflare API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var cfResp cloudflareResponse
+	if err := json.NewDecoder(resp.Body).Decode(&cfResp); err != nil {
+		return false, fmt.Errorf("decoding Cloudflare response: %w", err)
+	}
+
+	if cfResp.Success {
+		return true, nil
+	}
+
+	// Check if it's a "not found" vs some other error.
+	for _, e := range cfResp.Errors {
+		if e.Code == 8000007 { // Cloudflare's "project not found" code
+			return false, nil
+		}
+	}
+	return false, fmt.Errorf("Cloudflare API error: %s", formatErrors(cfResp.Errors))
+}
+
+// createProject creates a new Cloudflare Pages project.
+func (c *CloudflareDeployer) createProject() error {
+	url := fmt.Sprintf("%s/accounts/%s/pages/projects",
+		cloudflareAPIBase, c.config.AccountID)
+
+	body := fmt.Sprintf(`{"name":%q,"production_branch":"main"}`, c.config.Project)
+
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -90,9 +148,10 @@ func (c *CloudflareDeployer) TestConnection() error {
 	}
 
 	if !cfResp.Success {
-		return fmt.Errorf("Cloudflare API error: %s", formatErrors(cfResp.Errors))
+		return fmt.Errorf("failed to create project: %s", formatErrors(cfResp.Errors))
 	}
 
+	fmt.Printf("Created Cloudflare Pages project %q\n", c.config.Project)
 	return nil
 }
 
@@ -102,7 +161,12 @@ func (c *CloudflareDeployer) Deploy() error {
 		return err
 	}
 
-	c.progress(0, "Collecting files...")
+	c.progress(0, "Checking project...")
+	if err := c.ensureProject(); err != nil {
+		return err
+	}
+
+	c.progress(2, "Collecting files...")
 
 	// Collect all files to upload.
 	files, err := c.collectFiles()

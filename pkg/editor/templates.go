@@ -150,6 +150,12 @@ const editorHTML = `<!DOCTYPE html>
                                 <input type="text" id="cf-account" class="form-control" placeholder="023e105f4ecef8ad9ca31a8372d0c353">
                             </div>
                             <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="cf-auto-create" checked>
+                                    <span style="font-size: 14px;">Create project if it doesn't exist</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
                                 <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set Cloudflare API token via environment variable:<br>
                                 <code>CLOUDFLARE_API_TOKEN</code></p>
                             </div>
@@ -1585,7 +1591,19 @@ async function loadDeployConfig() {
         if (config.cloudflare) {
             document.getElementById('cf-project').value = config.cloudflare.project || '';
             document.getElementById('cf-account').value = config.cloudflare.account_id || '';
-            // Don't load API token - it comes from environment
+            if (config.cloudflare.auto_create !== undefined) {
+                document.getElementById('cf-auto-create').checked = config.cloudflare.auto_create;
+            }
+        }
+        // Default project name from gallery title if empty
+        if (!document.getElementById('cf-project').value) {
+            const title = document.getElementById('gallery-title').value;
+            if (title) {
+                document.getElementById('cf-project').value = title
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+            }
         }
     } catch (error) {
         console.error('Error loading deployment config:', error);
@@ -1610,8 +1628,8 @@ async function saveDeployConfig() {
         },
         cloudflare: {
             project: document.getElementById('cf-project').value,
-            account_id: document.getElementById('cf-account').value
-            // API token should come from environment variables
+            account_id: document.getElementById('cf-account').value,
+            auto_create: document.getElementById('cf-auto-create').checked
         }
     };
     
