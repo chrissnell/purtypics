@@ -2,7 +2,10 @@ package deploy
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -17,10 +20,19 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+// s3API abstracts the S3 operations we use, enabling test mocks.
+type s3API interface {
+	HeadBucket(ctx context.Context, input *s3.HeadBucketInput, opts ...func(*s3.Options)) (*s3.HeadBucketOutput, error)
+	PutObject(ctx context.Context, input *s3.PutObjectInput, opts ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, input *s3.DeleteObjectInput, opts ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	ListObjectsV2(ctx context.Context, input *s3.ListObjectsV2Input, opts ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+}
+
 // S3Deployer handles deployments to Amazon S3.
 type S3Deployer struct {
 	config           *S3Config
 	output           string
+	client           s3API // nil until Deploy/TestConnection; injected in tests
 	progressCallback func(int, string)
 }
 
@@ -46,12 +58,11 @@ func (d *S3Deployer) TestConnection() error {
 	}
 
 	ctx := context.Background()
-	client, err := d.newClient(ctx)
-	if err != nil {
+	if err := d.ensureClient(ctx); err != nil {
 		return err
 	}
 
-	_, err = client.HeadBucket(ctx, &s3.HeadBucketInput{
+	_, err := d.client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: &d.config.Bucket,
 	})
 	if err != nil {
@@ -61,37 +72,86 @@ func (d *S3Deployer) TestConnection() error {
 	return nil
 }
 
-// Deploy uploads the output directory to S3, then optionally invalidates CloudFront.
+// Deploy syncs the output directory to S3:
+//  1. Lists remote objects to build an ETag index.
+//  2. Hashes local files (MD5) and compares against remote ETags.
+//  3. Uploads only new or changed files.
+//  4. Deletes remote objects that no longer exist locally.
+//  5. Optionally invalidates CloudFront.
 func (d *S3Deployer) Deploy() error {
 	if err := d.validate(); err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	client, err := d.newClient(ctx)
-	if err != nil {
+	if err := d.ensureClient(ctx); err != nil {
 		return err
 	}
 
-	d.progress(0, "Collecting files...")
+	d.progress(0, "Collecting local files...")
 
-	files, err := d.collectFiles()
+	localFiles, err := d.collectFiles()
 	if err != nil {
 		return fmt.Errorf("collecting files: %w", err)
 	}
-	if len(files) == 0 {
+	if len(localFiles) == 0 {
 		return fmt.Errorf("no files found in output directory: %s", d.output)
 	}
 
-	d.progress(5, fmt.Sprintf("Uploading %d files to s3://%s...", len(files), d.config.Bucket))
+	d.progress(5, "Listing remote objects...")
 
-	// Upload each file. Reserve 5-90% for uploads, 90-100% for CloudFront.
-	for i, relPath := range files {
-		if err := d.uploadFile(ctx, client, relPath); err != nil {
+	remoteETags, err := d.listRemoteObjects(ctx)
+	if err != nil {
+		return fmt.Errorf("listing remote objects: %w", err)
+	}
+
+	d.progress(10, "Computing file hashes...")
+
+	// Compute local MD5s and determine what needs uploading.
+	localKeys := make(map[string]bool, len(localFiles))
+	var toUpload []string
+	for _, relPath := range localFiles {
+		key := filepath.ToSlash(relPath)
+		localKeys[key] = true
+
+		localETag, err := d.md5File(relPath)
+		if err != nil {
+			return fmt.Errorf("hashing %s: %w", relPath, err)
+		}
+
+		if remoteETag, exists := remoteETags[key]; exists && remoteETag == localETag {
+			continue // unchanged
+		}
+		toUpload = append(toUpload, relPath)
+	}
+
+	// Find remote objects to delete.
+	var toDelete []string
+	for key := range remoteETags {
+		if !localKeys[key] {
+			toDelete = append(toDelete, key)
+		}
+	}
+
+	d.progress(15, fmt.Sprintf("Syncing: %d to upload, %d unchanged, %d to delete",
+		len(toUpload), len(localFiles)-len(toUpload), len(toDelete)))
+
+	// Upload new/changed files. Reserve 15-80% for uploads.
+	for i, relPath := range toUpload {
+		if err := d.uploadFile(ctx, relPath); err != nil {
 			return fmt.Errorf("uploading %s: %w", relPath, err)
 		}
-		pct := 5 + (85 * (i + 1) / len(files))
-		d.progress(pct, fmt.Sprintf("Uploaded %d/%d files", i+1, len(files)))
+		pct := 15 + (65 * (i + 1) / len(toUpload))
+		d.progress(pct, fmt.Sprintf("Uploaded %d/%d changed files", i+1, len(toUpload)))
+	}
+
+	// Delete stale remote objects. Reserve 80-90%.
+	for i, key := range toDelete {
+		if err := d.deleteObject(ctx, key); err != nil {
+			return fmt.Errorf("deleting %s: %w", key, err)
+		}
+		pct := 80 + (10 * (i + 1) / len(toDelete))
+		d.progress(pct, fmt.Sprintf("Deleted %d/%d stale files", i+1, len(toDelete)))
 	}
 
 	// Invalidate CloudFront if configured.
@@ -124,17 +184,68 @@ func (d *S3Deployer) validate() error {
 	return nil
 }
 
-func (d *S3Deployer) newClient(ctx context.Context) (*s3.Client, error) {
+func (d *S3Deployer) ensureClient(ctx context.Context) error {
+	if d.client != nil {
+		return nil
+	}
 	cfg, err := awsconfig.LoadDefaultConfig(ctx,
 		awsconfig.WithRegion(d.config.Region),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("loading AWS config: %w", err)
+		return fmt.Errorf("loading AWS config: %w", err)
 	}
-	return s3.NewFromConfig(cfg), nil
+	d.client = s3.NewFromConfig(cfg)
+	return nil
 }
 
-func (d *S3Deployer) uploadFile(ctx context.Context, client *s3.Client, relPath string) error {
+// listRemoteObjects returns a map of S3 key -> ETag for all objects in the bucket.
+func (d *S3Deployer) listRemoteObjects(ctx context.Context) (map[string]string, error) {
+	etags := make(map[string]string)
+	var continuationToken *string
+
+	for {
+		out, err := d.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+			Bucket:            &d.config.Bucket,
+			ContinuationToken: continuationToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, obj := range out.Contents {
+			if obj.Key != nil && obj.ETag != nil {
+				// S3 ETags are quoted, strip quotes for comparison.
+				etag := strings.Trim(*obj.ETag, "\"")
+				etags[*obj.Key] = etag
+			}
+		}
+
+		if !aws.ToBool(out.IsTruncated) {
+			break
+		}
+		continuationToken = out.NextContinuationToken
+	}
+
+	return etags, nil
+}
+
+// md5File computes the hex-encoded MD5 of a local file (matches S3 ETag for non-multipart uploads).
+func (d *S3Deployer) md5File(relPath string) (string, error) {
+	absPath := filepath.Join(d.output, relPath)
+	f, err := os.Open(absPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func (d *S3Deployer) uploadFile(ctx context.Context, relPath string) error {
 	absPath := filepath.Join(d.output, relPath)
 	f, err := os.Open(absPath)
 	if err != nil {
@@ -142,7 +253,6 @@ func (d *S3Deployer) uploadFile(ctx context.Context, client *s3.Client, relPath 
 	}
 	defer f.Close()
 
-	// Use forward-slash key for S3.
 	key := filepath.ToSlash(relPath)
 
 	input := &s3.PutObjectInput{
@@ -151,27 +261,28 @@ func (d *S3Deployer) uploadFile(ctx context.Context, client *s3.Client, relPath 
 		Body:   f,
 	}
 
-	// Set Content-Type from extension.
 	if ct := contentType(relPath); ct != "" {
 		input.ContentType = &ct
 	}
-
-	// Set Cache-Control if configured.
 	if d.config.CacheControl != "" {
 		input.CacheControl = &d.config.CacheControl
 	}
-
-	// Set storage class if configured.
 	if d.config.StorageClass != "" {
 		input.StorageClass = s3types.StorageClass(d.config.StorageClass)
 	}
-
-	// Set ACL if configured.
 	if d.config.ACL != "" {
 		input.ACL = s3types.ObjectCannedACL(d.config.ACL)
 	}
 
-	_, err = client.PutObject(ctx, input)
+	_, err = d.client.PutObject(ctx, input)
+	return err
+}
+
+func (d *S3Deployer) deleteObject(ctx context.Context, key string) error {
+	_, err := d.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &d.config.Bucket,
+		Key:    &key,
+	})
 	return err
 }
 

@@ -205,20 +205,48 @@ Then deploy:
 purtypics deploy
 ```
 
-#### S3 Deployment (Coming Soon)
+#### S3 Deployment
+
+Deploy to an S3 bucket with incremental sync — only changed files are uploaded and stale files are deleted. Deduplication uses MD5 ETag comparison.
 
 ```yaml
 s3:
   bucket: my-photo-gallery
   region: us-east-1
+  # Optional settings:
+  cloudfront_id: E27EXAMPLE51Z    # invalidate CloudFront cache after deploy
+  cache_control: "max-age=31536000"
+  storage_class: STANDARD          # STANDARD, STANDARD_IA, GLACIER, etc.
+  acl: public-read                 # public-read, private, etc.
 ```
 
-#### Cloudflare Pages (Coming Soon)
+AWS credentials are resolved via the standard SDK chain: environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`), `~/.aws/credentials`, or IAM role.
+
+```bash
+purtypics deploy --target s3
+purtypics deploy --target s3 --dry-run  # test connection only
+```
+
+#### Cloudflare Pages
+
+Deploy to Cloudflare Pages with hash-based deduplication. Large files (>25 MiB) are automatically uploaded to R2 if enabled.
 
 ```yaml
 cloudflare:
   project: my-gallery
   account_id: your-account-id
+  auto_create: true               # create project if it doesn't exist
+  branch: main                    # optional branch name
+  r2:                             # optional: handle files >25 MiB
+    enabled: true
+    bucket: my-gallery-assets     # defaults to {project}-assets
+    custom_domain: assets.example.com
+```
+
+Requires `CLOUDFLARE_API_TOKEN` environment variable. For R2, also set `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
+
+```bash
+purtypics deploy --target cloudflare
 ```
 
 ## Tips

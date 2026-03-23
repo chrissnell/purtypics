@@ -18,11 +18,11 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy the generated gallery to a remote host",
 	Long: `Deploy the generated gallery to a remote host using various methods.
-	
+
 Supported deployment methods:
   - rsync: Deploy to a remote server via SSH
-  - s3: Deploy to Amazon S3 (coming soon)
-  - cloudflare: Deploy to Cloudflare Pages (coming soon)
+  - s3: Deploy to Amazon S3 with incremental sync
+  - cloudflare: Deploy to Cloudflare Pages with hash-based dedup
 
 Configuration is read from deploy.yaml in the gallery directory.`,
 	RunE: runDeploy,
