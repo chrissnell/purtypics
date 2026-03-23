@@ -39,13 +39,13 @@ See all platforms on the [releases page](https://github.com/chrissnell/purtypics
 ```bash
 # Open the metadata editor — add titles, descriptions, pick a theme,
 # and click "Generate Gallery" when you're ready
-purtypics edit /path/to/photos -o /var/www/gallery
+purtypics edit ~/photos --output ./gallery
 
 # Deploy to your server
 purtypics deploy
 ```
 
-The editor opens a browser UI where you can organize albums, tag favorites, set cover photos, and choose a theme — no YAML editing required. When everything looks right, click **Generate Gallery** and your site is built to the output path you specified with `-o`.
+The `--output` flag sets where the generated site goes. The editor opens a browser UI where you can organize albums, tag favorites, set cover photos, and choose a theme — no YAML editing required. When everything looks right, click **Generate Gallery** and the site is built to your output directory.
 
 ## Installation
 
@@ -66,7 +66,7 @@ make build
 Purtypics expects your photos to be organized in directories:
 
 ```
-my-gallery/
+~/photos/
 ├── vacation-2024/
 │   ├── IMG_001.jpg
 │   ├── IMG_002.jpg
@@ -77,14 +77,14 @@ my-gallery/
 └── gallery.yaml      # Auto-generated metadata file
 ```
 
-Each directory becomes an album in your gallery.
+Each subdirectory becomes an album in your gallery.
 
 ### Metadata Editor (Recommended)
 
 The easiest way to set up and generate your gallery is the built-in editor:
 
 ```bash
-purtypics edit /path/to/photos -o /path/to/output
+purtypics edit ~/photos --output ./gallery
 ```
 
 This opens a browser UI where you can:
@@ -95,7 +95,7 @@ This opens a browser UI where you can:
 - Edit gallery title and description
 - **Generate your gallery** with the Generate Gallery button
 
-All changes are saved to `gallery.yaml`. When you're happy with everything, click **Generate Gallery** — the site is built directly to the output path you specified with `-o`.
+All changes are saved to `gallery.yaml`. When you're happy with everything, click **Generate Gallery** — the site is built to the `--output` directory.
 
 ### Command-Line Generation
 
@@ -103,7 +103,7 @@ You can also generate without the editor:
 
 ```bash
 purtypics generate
-purtypics generate -s /photos -o /website
+purtypics generate -s ~/photos --output ./gallery
 ```
 
 This scans for photos and videos, generates optimized thumbnails, and creates the static site.
@@ -164,7 +164,7 @@ You can also select a theme from the **Gallery Settings** tab in the editor (`pu
 Create a custom theme by adding a directory under `themes/` in your gallery source:
 
 ```
-my-gallery/
+~/photos/
 ├── vacation-2024/
 ├── gallery.yaml
 └── themes/

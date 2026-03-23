@@ -32,11 +32,11 @@ The editor allows you to:
 Usage:
   purtypics edit                    # Edit gallery in current directory
   purtypics edit /path/to/gallery   # Edit gallery in specified directory
-  purtypics edit -s /photos -o /web # Use explicit source and output paths
+  purtypics edit -s ~/photos --output ./gallery
 
 The metadata file (gallery.yaml) is saved in the source directory by default.
 When you click "Generate" in the editor, the gallery HTML and thumbnails are
-created in the output directory (-o flag) or in a default location.`,
+created in the output directory (--output flag, defaults to ./gallery).`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var sourcePath, outputPath, metadataPath string
