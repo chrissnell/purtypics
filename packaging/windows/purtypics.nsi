@@ -52,7 +52,12 @@ Section "MainSection" SEC01
   File /oname=purtypics.exe "purtypics.exe"
   File "..\..\README.md"
   ; File /nonfatal "..\..\LICENSE"
-  
+
+  ; Install themes to %ProgramData%\Purtypics\themes
+  SetOutPath "$COMMONFILES\..\ProgramData\Purtypics\themes"
+  File /r /x .gitkeep "..\..\pkg\gallery\assets\themes\*.*"
+  SetOutPath "$INSTDIR"
+
   ; Create shortcuts
   CreateDirectory "$SMPROGRAMS\Purtypics"
   CreateShortcut "$SMPROGRAMS\Purtypics\Purtypics.lnk" "$INSTDIR\purtypics.exe"
@@ -100,6 +105,10 @@ Section Uninstall
   Delete "$INSTDIR\purtypics.exe"
   Delete "$INSTDIR\README.md"
   ; Delete "$INSTDIR\LICENSE"
+
+  ; Remove installed themes
+  RMDir /r "$COMMONFILES\..\ProgramData\Purtypics\themes"
+  RMDir "$COMMONFILES\..\ProgramData\Purtypics"
 
   Delete "$SMPROGRAMS\Purtypics\Uninstall.lnk"
   Delete "$SMPROGRAMS\Purtypics\Purtypics.lnk"

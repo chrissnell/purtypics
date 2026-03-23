@@ -1006,7 +1006,9 @@ async function loadThemes() {
             opt.textContent = name;
             select.appendChild(opt);
         });
-        select.value = metadata.theme || '';
+        const currentTheme = metadata.theme || '';
+        select.value = currentTheme === 'default' ? '' : currentTheme;
+        if (select.selectedIndex === -1) select.selectedIndex = 0;
     } catch (error) {
         console.error('Error loading themes:', error);
     }

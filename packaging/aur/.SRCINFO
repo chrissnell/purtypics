@@ -1,0 +1,14 @@
+pkgbase = purtypics
+	pkgdesc = A fast, modern static photo gallery generator
+	pkgver = VERSION
+	pkgrel = 1
+	url = https://github.com/chrissnell/purtypics
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = go
+	depends = glibc
+	source = purtypics-VERSION.tar.gz::https://github.com/chrissnell/purtypics/archive/vVERSION.tar.gz
+	sha256sums = SKIP
+
+pkgname = purtypics

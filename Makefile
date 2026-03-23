@@ -6,6 +6,8 @@ GO=go
 GOFLAGS=-v
 LDFLAGS=-s -w
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+PREFIX ?= /usr/local
+DATADIR ?= $(PREFIX)/share
 
 # Build variables
 MAIN_PACKAGE=.
@@ -30,8 +32,15 @@ build-all: ## Build for all platforms
 	GOOS=windows GOARCH=amd64 $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(MAIN_PACKAGE)
 
 .PHONY: install
-install: build ## Install the binary to $GOPATH/bin
+install: build ## Install binary and themes
 	$(GO) install $(GOFLAGS) $(MAIN_PACKAGE)
+	@echo "Installing themes to $(DATADIR)/purtypics/themes..."
+	install -d $(DATADIR)/purtypics/themes
+	cp -r pkg/gallery/assets/themes/* $(DATADIR)/purtypics/themes/
+
+.PHONY: uninstall
+uninstall: ## Remove installed themes
+	rm -rf $(DATADIR)/purtypics
 
 # Testing targets
 .PHONY: test

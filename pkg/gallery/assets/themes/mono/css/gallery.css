@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo+Narrow:wght@400;500&display=swap');
+
+:root {
+    --primary-color: #E04E2A;
+    --secondary-color: #E04E2A;
+    --accent-color: #E04E2A;
+    --highlight-color: #E04E2A;
+    --background-color: #FFFFFF;
+    --card-background: #FFFFFF;
+    --text-color: #111111;
+    --text-muted: #888888;
+    --border-style: solid;
+    --border-width: 1px;
+    --border-color: #E0E0E0;
+    --gutter-size: 8px;
+    --gutter-size-photos: 6px;
+    --transition-speed: 0.2s;
+    --font-heading: 'Archivo Black', sans-serif;
+    --font-body: 'Archivo Narrow', sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-body); font-weight: 400; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; font-size: 14px; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 400; line-height: 1.2; }
+img { max-width: 100%; height: auto; display: block; }
+a { text-decoration: none; color: inherit; }
+
+.gallery-container { max-width: 1400px; margin: 0 auto; padding: 40px 15px; }
+.gallery-header, .album-header { text-align: center; margin-bottom: 60px; }
+.gallery-title { font-size: 2.8rem; font-weight: 400; margin: 0 0 20px; color: var(--text-color); text-transform: uppercase; letter-spacing: 0.05em; }
+.album-title { font-size: 2rem; font-weight: 400; margin: 0 0 20px; color: var(--text-color); text-transform: uppercase; letter-spacing: 0.03em; }
+.gallery-description, .album-description { font-size: 1.1rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 20px; font-weight: 400; }
+.album-date { display: inline-block; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; margin-top: 10px; }
+.breadcrumb { margin-bottom: 40px; }
+.back-link { display: inline-flex; align-items: center; color: var(--text-muted); font-weight: 500; font-size: 1rem; transition: color var(--transition-speed); }
+.back-link:hover { color: var(--primary-color); }
+
+.masonry-grid { margin: 0 calc(var(--gutter-size) / -2); }
+#photos-grid { margin: 0 calc(var(--gutter-size-photos) / -2); }
+#photos-grid .grid-sizer, #photos-grid .grid-item { margin: calc(var(--gutter-size-photos) / 2); }
+.grid-sizer, .grid-item { width: calc(25% - var(--gutter-size)); margin: calc(var(--gutter-size) / 2); }
+
+@media (max-width: 1200px) { .grid-sizer, .grid-item { width: calc(33.333% - var(--gutter-size)); } }
+@media (max-width: 900px) { .grid-sizer, .grid-item { width: calc(50% - var(--gutter-size)); } }
+@media (max-width: 600px) {
+    .grid-sizer, .grid-item { width: calc(100% - var(--gutter-size)); }
+    #photos-grid .grid-sizer, #photos-grid .grid-item { width: calc(100% - var(--gutter-size-photos)); }
+    .gallery-title { font-size: 2rem; }
+    .gallery-container { padding: 30px 10px; }
+}
+
+.album-card { background: var(--card-background); border: var(--border-width) var(--border-style) var(--border-color); border-radius: 0; position: relative; transition: border-color var(--transition-speed); overflow: hidden; }
+.album-card:hover { transform: none; border-color: var(--primary-color); box-shadow: none; }
+.album-link { display: block; height: 100%; }
+.album-cover { position: relative; padding-bottom: 75%; background: #F0F0F0; overflow: hidden; }
+.album-cover.no-image { background: #F0F0F0; }
+.album-cover img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: filter var(--transition-speed); }
+.album-card:hover .album-cover img { filter: grayscale(0%); }
+.album-info-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 15px; background: rgba(0,0,0,0.85); color: white; transition: background var(--transition-speed); }
+.album-info-overlay .album-title { font-size: 1.1rem; font-weight: 400; margin: 0 0 2px; color: white; text-shadow: none; text-transform: uppercase; letter-spacing: 0.03em; }
+.album-count { font-size: 0.8rem; color: rgba(255,255,255,0.7); font-weight: 400; }
+
+.photo-card { position: relative; background: var(--card-background); border: var(--border-width) var(--border-style) var(--border-color); border-radius: 0; overflow: hidden; transition: border-color var(--transition-speed); }
+.photo-card:hover { transform: none; border-color: var(--primary-color); box-shadow: none; }
+.photo-link { display: block; position: relative; }
+.photo-card img { width: 100%; height: auto; display: block; filter: grayscale(100%); transition: filter var(--transition-speed); }
+.photo-card:hover img { filter: grayscale(0%); }
+.photo-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); padding: 10px 12px; opacity: 0; transition: opacity var(--transition-speed); }
+.photo-card:hover .photo-overlay { opacity: 1; }
+.photo-title { color: white; font-size: 0.85rem; font-weight: 500; margin: 0; text-shadow: none; font-family: var(--font-body); }
+
+.grid-item { opacity: 0; transition: opacity 0.2s; }
+.grid-item.loaded { opacity: 1; }
+
+.text-center { text-align: center; }
+.mt-4 { margin-top: 2rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.album-cover img[src=""] { display: none; }
+.album-cover:has(img[src=""]) { background: #F0F0F0; }
+
+.gallery-footer { margin-top: 4rem; padding: 2rem 0 1rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); border: none; background: transparent; }
+.gallery-footer p { margin: 0; }
+.gallery-footer a { color: var(--text-muted); text-decoration: none; transition: color var(--transition-speed); }
+.gallery-footer a:hover { color: var(--primary-color); }
+
+.video-container { position: relative; overflow: hidden; }
+.video-poster, .video-preview { width: 100%; display: block; }
+.video-poster { filter: grayscale(100%); transition: filter var(--transition-speed); }
+.video-item:hover .video-poster { filter: grayscale(0%); }
+.video-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s ease; }
+.video-item:hover .video-preview { opacity: 1; }
+.play-button { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; background: #111111; border-radius: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; pointer-events: none; transition: opacity 0.2s ease; z-index: 2; }
+.video-item:hover .play-button { opacity: 0; }
+.lightbox-video { max-width: 100%; max-height: 90vh; display: none; }

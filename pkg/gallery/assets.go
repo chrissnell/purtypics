@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 //go:embed all:assets
@@ -19,45 +20,95 @@ func EmbeddedThemesFS() fs.FS {
 	return sub
 }
 
+// SystemThemesDirs returns the platform-specific system-wide themes directories,
+// ordered by priority (first match wins).
+//
+//	macOS:   /usr/local/share/purtypics/themes, /usr/share/purtypics/themes
+//	Linux:   /usr/share/purtypics/themes
+//	Windows: %ProgramData%\Purtypics\themes
+func SystemThemesDirs() []string {
+	switch runtime.GOOS {
+	case "windows":
+		if pd := os.Getenv("ProgramData"); pd != "" {
+			return []string{filepath.Join(pd, "Purtypics", "themes")}
+		}
+		return []string{`C:\ProgramData\Purtypics\themes`}
+	case "darwin":
+		return []string{
+			"/opt/homebrew/share/purtypics/themes",
+			"/usr/local/share/purtypics/themes",
+		}
+	default:
+		return []string{"/usr/share/purtypics/themes"}
+	}
+}
+
 // ThemeFS provides access to theme files with fallback to the embedded default theme.
+//
 // Resolution order for a given theme name:
-//   1. User theme directory: <sourcePath>/themes/<name>/
-//   2. Embedded default theme (compiled into binary)
+//  1. System-installed themes: /usr/share/purtypics/themes/<name>/ (or platform equivalent)
+//  2. Local themes: <sourcePath>/themes/<name>/
+//  3. Embedded themes compiled into the binary
 type ThemeFS struct {
 	themeName string
-	userFS    fs.FS // user-provided theme on disk (may be nil)
-	defaultFS fs.FS // embedded default theme (always present)
+	userFS    fs.FS // highest-priority on-disk theme (may be nil)
+	defaultFS fs.FS // fallback theme (embedded default or embedded named theme)
 }
 
 // NewThemeFS creates a ThemeFS for the given theme name.
-// sourcePath is the gallery source directory where user themes live under themes/.
+// sourcePath is the gallery source directory where local themes live under themes/.
 func NewThemeFS(themeName, sourcePath string) (*ThemeFS, error) {
 	if themeName == "" {
 		themeName = defaultTheme
 	}
 
-	// Embedded default is always available
-	defaultFS, err := fs.Sub(assetsFS, "assets/themes/default")
+	// Embedded default is always the ultimate fallback
+	embeddedDefault, err := fs.Sub(assetsFS, "assets/themes/default")
 	if err != nil {
 		return nil, fmt.Errorf("failed to access embedded default theme: %w", err)
 	}
 
 	t := &ThemeFS{
 		themeName: themeName,
-		defaultFS: defaultFS,
+		defaultFS: embeddedDefault,
 	}
 
-	// Check for user-provided theme on disk
-	if sourcePath != "" {
-		userThemeDir := filepath.Join(sourcePath, "themes", themeName)
-		if info, err := os.Stat(userThemeDir); err == nil && info.IsDir() {
-			t.userFS = os.DirFS(userThemeDir)
-		} else if themeName != defaultTheme {
-			return nil, fmt.Errorf("theme %q not found at %s", themeName, userThemeDir)
+	if themeName == defaultTheme {
+		return t, nil
+	}
+
+	// For non-default themes, resolve in priority order:
+	//   1. System-installed (/usr/share/purtypics/themes/<name>/)
+	//   2. Local (<sourcePath>/themes/<name>/)
+	//   3. Embedded (assets/themes/<name>/)
+
+	// Check system-installed themes
+	for _, dir := range SystemThemesDirs() {
+		sysDir := filepath.Join(dir, themeName)
+		if info, err := os.Stat(sysDir); err == nil && info.IsDir() {
+			t.userFS = os.DirFS(sysDir)
+			return t, nil
 		}
 	}
 
-	return t, nil
+	// Check local themes in source directory
+	if sourcePath != "" {
+		localDir := filepath.Join(sourcePath, "themes", themeName)
+		if info, err := os.Stat(localDir); err == nil && info.IsDir() {
+			t.userFS = os.DirFS(localDir)
+			return t, nil
+		}
+	}
+
+	// Check embedded themes
+	if embeddedTheme, err := fs.Sub(assetsFS, "assets/themes/"+themeName); err == nil {
+		if _, err := fs.ReadDir(embeddedTheme, "."); err == nil {
+			t.defaultFS = embeddedTheme
+			return t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("theme %q not found (checked system, local, and built-in themes)", themeName)
 }
 
 // GetTemplateFS returns an fs.FS rooted at the templates/ subdirectory,
@@ -84,7 +135,6 @@ func (t *ThemeFS) sub(dir string) (fs.FS, error) {
 		if s, err := fs.Sub(t.userFS, dir); err == nil {
 			userSub = s
 		}
-		// If user theme doesn't have this subdir, that's fine — fall back entirely
 	}
 
 	return &overlayFS{upper: userSub, lower: defaultSub}, nil
@@ -111,7 +161,6 @@ func (o *overlayFS) Open(name string) (fs.File, error) {
 func (o *overlayFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	entries := make(map[string]fs.DirEntry)
 
-	// Lower first
 	if rdr, ok := o.lower.(fs.ReadDirFS); ok {
 		if dirEntries, err := rdr.ReadDir(name); err == nil {
 			for _, e := range dirEntries {
@@ -120,7 +169,6 @@ func (o *overlayFS) ReadDir(name string) ([]fs.DirEntry, error) {
 		}
 	}
 
-	// Upper overwrites
 	if o.upper != nil {
 		if rdr, ok := o.upper.(fs.ReadDirFS); ok {
 			if dirEntries, err := rdr.ReadDir(name); err == nil {
@@ -150,7 +198,6 @@ func (o *overlayFS) ReadFile(name string) ([]byte, error) {
 				return data, nil
 			}
 		}
-		// Try Open as fallback for upper
 		if f, err := o.upper.Open(name); err == nil {
 			defer f.Close()
 			info, err := f.Stat()

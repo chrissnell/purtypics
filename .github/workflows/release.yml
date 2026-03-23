@@ -72,7 +72,7 @@ jobs:
           # Debug: List all extracted files
           Write-Host "Contents of dist directory:"
           Get-ChildItem -Path dist -Recurse | ForEach-Object { Write-Host $_.FullName }
-          
+
           # Find the extracted Windows executable (might be purtypics or purtypics.exe)
           $exePath = Get-ChildItem -Path dist -Recurse | Where-Object { $_.Name -eq "purtypics.exe" -or $_.Name -eq "purtypics" } | Select-Object -First 1
           if ($exePath) {
@@ -90,10 +90,39 @@ jobs:
         run: |
           cd packaging\windows
           makensis purtypics.nsi
-          
+
       - name: Upload installer to release
         uses: softprops/action-gh-release@v2
         with:
           files: packaging/windows/purtypics-installer.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  packaging-extras:
+    name: Upload AUR PKGBUILD and Homebrew Formula
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare AUR PKGBUILD
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/pkgver=VERSION/pkgver=${VERSION}/" packaging/aur/PKGBUILD
+          sed -i "s/VERSION/${VERSION}/g" packaging/aur/.SRCINFO
+          tar -czf purtypics-aur-${VERSION}.tar.gz -C packaging/aur PKGBUILD .SRCINFO
+
+      - name: Prepare Homebrew formula
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cp packaging/homebrew/purtypics.rb purtypics-${VERSION}.rb
+
+      - name: Upload packaging assets to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            purtypics-aur-*.tar.gz
+            purtypics-*.rb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

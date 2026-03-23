@@ -169,7 +169,7 @@ a { text-decoration: none; color: inherit; }
     position: relative;
     padding-bottom: 75%;
     background: #F5F5F0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .album-cover.no-image {

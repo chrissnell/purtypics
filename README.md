@@ -171,6 +171,12 @@ Then set `theme: mytheme` in `gallery.yaml`.
 
 A theme only needs to include files you want to override — anything missing falls back to the built-in default. For example, a CSS-only theme just needs `css/gallery.css`. Look at the [default theme](pkg/gallery/assets/themes/default/) as a reference for available template variables and CSS classes.
 
+**Theme search order:**
+
+1. **System-installed** — `/usr/share/purtypics/themes/` (Linux), `/usr/local/share/purtypics/themes/` or `/opt/homebrew/share/purtypics/themes/` (macOS), `%ProgramData%\Purtypics\themes\` (Windows). Installed by `make install` or platform packages.
+2. **Local** — `themes/` directory alongside your photos
+3. **Built-in** — themes compiled into the binary
+
 ### Deployment
 
 #### rsync Deployment

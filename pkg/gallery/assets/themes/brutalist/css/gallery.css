@@ -6,7 +6,7 @@
     --primary-color: #000000;
     --secondary-color: #000000;
     --accent-color: #FF0000;
-    --highlight-color: #FFFF00;
+    --highlight-color: #FFAA00;
     --background-color: #FFFFFF;
     --card-background: #FFFFFF;
     --text-color: #000000;
@@ -286,7 +286,7 @@ a { text-decoration: none; color: inherit; }
     border-bottom-color: var(--accent-color);
 }
 
-/* Video */
+/* Video */yes
 .video-container { position: relative; overflow: hidden; }
 .video-poster, .video-preview { width: 100%; display: block; }
 .video-preview {

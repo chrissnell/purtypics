@@ -52,6 +52,8 @@ archives:
       - LICENSE*
       - README*
       - CHANGELOG*
+      - src: pkg/gallery/assets/themes/**/*
+        dst: themes
 
 dockers:
   - image_templates:
@@ -90,6 +92,23 @@ docker_manifests:
     image_templates:
       - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-amd64"
       - "ghcr.io/chrissnell/purtypics:{{ .Tag }}-arm64"
+
+nfpms:
+  - id: purtypics
+    package_name: purtypics
+    vendor: Purtypics Contributors
+    homepage: https://github.com/chrissnell/purtypics
+    maintainer: Chris Snell <chris@chrissnell.com>
+    description: A fast, modern static photo gallery generator
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: pkg/gallery/assets/themes/
+        dst: /usr/share/purtypics/themes/
+        type: tree
 
 checksum:
   name_template: 'checksums.txt'

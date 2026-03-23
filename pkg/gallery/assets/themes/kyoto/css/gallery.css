@@ -1,30 +1,27 @@
-/* Nordic Theme — Scandinavian calm, whitespace, cool blue-gray */
-
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Karla:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@300;400;500&family=Nunito+Sans:wght@300;400&display=swap');
 
 :root {
-    --color-ice: #E8ECF0;
-    --color-fjord: #8FA3B0;
-    --color-stone: #6B7D8A;
-    --color-snow: #F7F8FA;
-    --color-pine: #5A7A6B;
-
-    --primary-color: var(--color-stone);
-    --secondary-color: var(--color-fjord);
-    --accent-color: var(--color-pine);
-    --highlight-color: #C4B99A;
-    --background-color: var(--color-snow);
-    --card-background: #FFFFFF;
-    --text-color: #3A3F44;
-    --text-muted: #9BA5AD;
+    --color-offwhite: #F5F0EB;
+    --color-charcoal: #2C2C2C;
+    --color-terracotta: #C4705A;
+    --color-warm-gray: #8A8178;
+    --color-pale-stone: #E6DED4;
+    --primary-color: var(--color-terracotta);
+    --secondary-color: var(--color-warm-gray);
+    --accent-color: var(--color-terracotta);
+    --highlight-color: var(--color-pale-stone);
+    --background-color: var(--color-offwhite);
+    --card-background: var(--color-offwhite);
+    --text-color: var(--color-charcoal);
+    --text-muted: var(--color-warm-gray);
     --border-style: solid;
-    --border-width: 1px;
-    --border-color: var(--color-ice);
-    --gutter-size: 20px;
+    --border-width: 0px;
+    --border-color: transparent;
+    --gutter-size: 24px;
     --gutter-size-photos: 12px;
-    --transition-speed: 0.35s;
-    --font-heading: 'Cormorant Garamond', serif;
-    --font-body: 'Karla', sans-serif;
+    --transition-speed: 0.4s;
+    --font-heading: 'Noto Serif', serif;
+    --font-body: 'Nunito Sans', sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -32,91 +29,92 @@
 body {
     margin: 0;
     font-family: var(--font-body);
-    font-weight: 400;
+    font-weight: 300;
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.7;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: 400;
-    line-height: 1.2;
+    line-height: 1.4;
 }
 
 img { max-width: 100%; height: auto; display: block; }
 a { text-decoration: none; color: inherit; }
 
 .gallery-container {
-    max-width: 1300px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 60px 30px;
+    padding: 60px 24px;
 }
 
-.gallery-header,
-.album-header {
+.gallery-header, .album-header {
     text-align: center;
-    margin-bottom: 70px;
+    margin-bottom: 72px;
 }
 
 .gallery-title {
-    font-size: 3rem;
+    font-size: 2.2rem;
     font-weight: 300;
-    margin: 0 0 20px;
+    margin: 0 0 24px;
     color: var(--text-color);
-    letter-spacing: 0.03em;
+    text-transform: none;
+    letter-spacing: 0.04em;
 }
 
 .album-title {
-    font-size: 2.5rem;
-    font-weight: 300;
+    font-size: 1.8rem;
+    font-weight: 400;
     margin: 0 0 20px;
     color: var(--text-color);
+    letter-spacing: 0.02em;
 }
 
-.gallery-description,
-.album-description {
-    font-size: 1rem;
+.gallery-description, .album-description {
+    font-size: 1.05rem;
     color: var(--text-muted);
-    max-width: 520px;
+    max-width: 540px;
     margin: 0 auto 20px;
+    font-family: var(--font-body);
     font-weight: 300;
     letter-spacing: 0.01em;
 }
 
 .album-date {
     display: inline-block;
-    color: var(--secondary-color);
+    color: var(--color-warm-gray);
     font-size: 0.9rem;
     font-weight: 300;
     margin-top: 12px;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
 }
 
-.breadcrumb { margin-bottom: 40px; text-align: center; }
+.breadcrumb { margin-bottom: 48px; }
 
 .back-link {
     display: inline-flex;
     align-items: center;
-    color: var(--secondary-color);
+    color: var(--color-warm-gray);
     font-weight: 400;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     transition: color var(--transition-speed);
-    letter-spacing: 0.02em;
+    border-bottom: none;
 }
 
-.back-link:hover { color: var(--accent-color); }
+.back-link:hover {
+    color: var(--color-terracotta);
+}
 
-/* Grid */
 .masonry-grid { margin: 0 calc(var(--gutter-size) / -2); }
 #photos-grid { margin: 0 calc(var(--gutter-size-photos) / -2); }
 
 #photos-grid .grid-sizer,
 #photos-grid .grid-item { margin: calc(var(--gutter-size-photos) / 2); }
 
-.grid-sizer,
-.grid-item {
+.grid-sizer, .grid-item {
     width: calc(25% - var(--gutter-size));
     margin: calc(var(--gutter-size) / 2);
 }
@@ -131,36 +129,35 @@ a { text-decoration: none; color: inherit; }
     .grid-sizer, .grid-item { width: calc(100% - var(--gutter-size)); }
     #photos-grid .grid-sizer,
     #photos-grid .grid-item { width: calc(100% - var(--gutter-size-photos)); }
-    .gallery-title { font-size: 2.2rem; }
-    .gallery-container { padding: 40px 15px; }
+    .gallery-title { font-size: 1.8rem; }
+    .gallery-container { padding: 40px 16px; }
 }
 
-/* Album Cards */
 .album-card {
     background: var(--card-background);
-    border: var(--border-width) var(--border-style) var(--border-color);
+    border: none;
+    border-radius: 0;
     position: relative;
-    transition: all var(--transition-speed) ease;
+    transition: all var(--transition-speed);
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .album-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(107, 125, 138, 0.1);
-    border-color: var(--secondary-color);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
 }
 
 .album-link { display: block; height: 100%; }
 
 .album-cover {
     position: relative;
-    padding-bottom: 80%;
-    background: var(--color-ice);
+    padding-bottom: 75%;
+    background: var(--color-pale-stone);
     overflow: hidden;
 }
 
 .album-cover.no-image {
-    background: linear-gradient(160deg, var(--color-ice), #E0E5EB);
+    background: var(--color-pale-stone);
 }
 
 .album-cover img {
@@ -168,68 +165,73 @@ a { text-decoration: none; color: inherit; }
     top: 0; left: 0;
     width: 100%; height: 100%;
     object-fit: cover;
-    transition: transform 0.6s ease;
+    filter: saturate(0.85);
+    transition: filter var(--transition-speed);
 }
 
 .album-card:hover .album-cover img {
-    transform: scale(1.02);
+    filter: saturate(1);
 }
 
 .album-info-overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 45px 18px 18px;
-    background: linear-gradient(to top, rgba(30,33,36,0.85), rgba(30,33,36,0.4), transparent);
-    color: white;
-    transition: all var(--transition-speed);
+    padding: 20px 16px 14px;
+    background: rgba(245, 240, 235, 0.88);
+    color: var(--text-color);
+    transition: background var(--transition-speed);
+}
+
+.album-card:hover .album-info-overlay {
+    background: rgba(245, 240, 235, 0.94);
 }
 
 .album-info-overlay .album-title {
-    font-size: 1.3rem;
-    font-family: var(--font-heading);
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 400;
     margin: 0 0 4px;
-    color: white;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 2px rgba(0,0,0,0.3);
+    color: var(--text-color);
+    text-shadow: none;
     letter-spacing: 0.02em;
 }
 
 .album-count {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.75);
+    font-size: 0.8rem;
+    color: var(--color-warm-gray);
     font-weight: 300;
-    letter-spacing: 0.03em;
 }
 
-/* Photo Cards */
 .photo-card {
     position: relative;
     background: var(--card-background);
-    border: var(--border-width) var(--border-style) var(--border-color);
+    border: none;
+    border-radius: 0;
     overflow: hidden;
-    transition: all var(--transition-speed) ease;
+    transition: all var(--transition-speed);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .photo-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--secondary-color);
-    box-shadow: 0 6px 20px rgba(107, 125, 138, 0.1);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
 }
 
 .photo-link { display: block; position: relative; }
 
 .photo-card img {
     width: 100%; height: auto; display: block;
-    transition: transform 0.6s ease;
+    filter: saturate(0.85);
+    transition: filter var(--transition-speed);
 }
 
-.photo-card:hover img { transform: scale(1.02); }
+.photo-card:hover img {
+    filter: saturate(1);
+}
 
 .photo-overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    background: linear-gradient(to top, rgba(58,63,68,0.65), transparent);
-    padding: 25px 14px 14px;
+    background: rgba(245, 240, 235, 0.88);
+    padding: 14px 12px 10px;
     opacity: 0;
     transition: opacity var(--transition-speed);
 }
@@ -237,22 +239,20 @@ a { text-decoration: none; color: inherit; }
 .photo-card:hover .photo-overlay { opacity: 1; }
 
 .photo-title {
-    color: white;
-    font-size: 0.9rem;
+    color: var(--text-color);
+    font-size: 0.85rem;
+    font-weight: 400;
     font-family: var(--font-heading);
-    font-weight: 500;
     margin: 0;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    text-shadow: none;
     letter-spacing: 0.02em;
 }
 
-/* Loading */
 .grid-item {
     opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.6s ease;
 }
-.grid-item.loaded { opacity: 1; transform: translateY(0); }
+.grid-item.loaded { opacity: 1; }
 
 .text-center { text-align: center; }
 .mt-4 { margin-top: 2rem; }
@@ -260,20 +260,20 @@ a { text-decoration: none; color: inherit; }
 
 .album-cover img[src=""] { display: none; }
 .album-cover:has(img[src=""]) {
-    background: linear-gradient(160deg, var(--color-ice), #E0E5EB);
+    background: var(--color-pale-stone);
 }
 
-/* Footer */
 .gallery-footer {
     margin-top: 5rem;
     padding: 2rem 0 1rem;
     text-align: center;
     font-family: var(--font-body);
     font-size: 0.8rem;
+    font-weight: 300;
     color: var(--text-muted);
     border: none;
     background: transparent;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
 }
 .gallery-footer p { margin: 0; }
 .gallery-footer a {
@@ -281,9 +281,8 @@ a { text-decoration: none; color: inherit; }
     text-decoration: none;
     transition: color var(--transition-speed);
 }
-.gallery-footer a:hover { color: var(--accent-color); }
+.gallery-footer a:hover { color: var(--color-terracotta); }
 
-/* Video */
 .video-container { position: relative; overflow: hidden; }
 .video-poster, .video-preview { width: 100%; display: block; }
 .video-preview {
@@ -291,21 +290,21 @@ a { text-decoration: none; color: inherit; }
     width: 100%; height: 100%;
     object-fit: cover;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.4s ease;
 }
 .video-item:hover .video-preview { opacity: 1; }
 .play-button {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 56px; height: 56px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(44, 44, 44, 0.5);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    color: var(--text-color); font-size: 1.3rem;
+    color: var(--color-offwhite);
+    font-size: 1.4rem;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.4s ease;
     z-index: 2;
-    backdrop-filter: blur(4px);
 }
 .video-item:hover .play-button { opacity: 0; }
 .lightbox-video { max-width: 100%; max-height: 90vh; display: none; }
