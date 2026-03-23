@@ -37,15 +37,10 @@ See all platforms on the [releases page](https://github.com/chrissnell/purtypics
 ### 2. Launch the editor and generate
 
 ```bash
-# Open the metadata editor — add titles, descriptions, pick a theme,
-# and click "Generate Gallery" when you're ready
 purtypics edit ~/photos --output ./gallery
-
-# Deploy to your server
-purtypics deploy
 ```
 
-The `--output` flag sets where the generated site goes. The editor opens a browser UI where you can organize albums, tag favorites, set cover photos, and choose a theme — no YAML editing required. When everything looks right, click **Generate Gallery** and the site is built to your output directory.
+The `--output` flag sets where the generated site goes. The editor opens a browser UI where you can organize albums, tag favorites, set cover photos, and choose a theme — no YAML editing required. When everything looks right, click **Generate Gallery** to build the site, then **Deploy** to push it live.
 
 ## Installation
 
