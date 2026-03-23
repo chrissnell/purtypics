@@ -40,12 +40,12 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 	deployType := req.Target
 	if deployType == "" {
 		switch {
+		case config.Cloudflare != nil:
+			deployType = "cloudflare"
 		case config.Rsync != nil:
 			deployType = "rsync"
 		case config.S3 != nil:
 			deployType = "s3"
-		case config.Cloudflare != nil:
-			deployType = "cloudflare"
 		default:
 			http.Error(w, "No deployment configuration found", http.StatusBadRequest)
 			return

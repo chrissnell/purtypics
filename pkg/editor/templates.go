@@ -79,65 +79,13 @@ const editorHTML = `<!DOCTYPE html>
             <div id="deploy-tab" class="tab-pane">
                 <h2>Deployment Settings</h2>
                 <div class="deploy-tabs">
-                    <button class="deploy-tab-btn active" data-deploy-tab="rsync">Rsync over SSH</button>
+                    <button class="deploy-tab-btn active" data-deploy-tab="cloudflare">Cloudflare Pages</button>
+                    <button class="deploy-tab-btn" data-deploy-tab="rsync">Rsync over SSH</button>
                     <button class="deploy-tab-btn" data-deploy-tab="s3">AWS S3</button>
-                    <button class="deploy-tab-btn" data-deploy-tab="cloudflare">Cloudflare Pages</button>
-                </div>
-                
-                <!-- Rsync Configuration -->
-                <div id="rsync-deploy-pane" class="deploy-pane active">
-                    <div class="deploy-section">
-                        <h3>Rsync Configuration</h3>
-                        <form id="rsync-form">
-                            <div class="form-group">
-                                <label for="rsync-host">Host (user@hostname)</label>
-                                <input type="text" id="rsync-host" class="form-control" placeholder="user@example.com">
-                            </div>
-                            <div class="form-group">
-                                <label for="rsync-path">Remote Path</label>
-                                <input type="text" id="rsync-path" class="form-control" placeholder="/var/www/html/gallery">
-                            </div>
-                            <div class="form-group">
-                                <label for="rsync-port">SSH Port</label>
-                                <input type="number" id="rsync-port" class="form-control" value="22">
-                            </div>
-                            <div class="deploy-actions">
-                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection (Dry Run)</span></button>
-                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- S3 Configuration -->
-                <div id="s3-deploy-pane" class="deploy-pane">
-                    <div class="deploy-section">
-                        <h3>AWS S3 Configuration</h3>
-                        <form id="s3-form">
-                            <div class="form-group">
-                                <label for="s3-bucket">Bucket Name</label>
-                                <input type="text" id="s3-bucket" class="form-control" placeholder="my-gallery-bucket">
-                            </div>
-                            <div class="form-group">
-                                <label for="s3-region">Region</label>
-                                <input type="text" id="s3-region" class="form-control" placeholder="us-east-1">
-                            </div>
-                            <div class="form-group">
-                                <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set AWS credentials via environment variables:<br>
-                                <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code></p>
-                            </div>
-                            <div class="deploy-actions">
-                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
-                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
                 
                 <!-- Cloudflare Pages Configuration -->
-                <div id="cloudflare-deploy-pane" class="deploy-pane">
+                <div id="cloudflare-deploy-pane" class="deploy-pane active">
                     <div class="deploy-section">
                         <h3>Cloudflare Pages Configuration</h3>
                         <form id="cloudflare-form">
@@ -192,6 +140,58 @@ const editorHTML = `<!DOCTYPE html>
                                 </div>
                             </div>
 
+                            <div class="deploy-actions">
+                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
+                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Rsync Configuration -->
+                <div id="rsync-deploy-pane" class="deploy-pane">
+                    <div class="deploy-section">
+                        <h3>Rsync Configuration</h3>
+                        <form id="rsync-form">
+                            <div class="form-group">
+                                <label for="rsync-host">Host (user@hostname)</label>
+                                <input type="text" id="rsync-host" class="form-control" placeholder="user@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="rsync-path">Remote Path</label>
+                                <input type="text" id="rsync-path" class="form-control" placeholder="/var/www/html/gallery">
+                            </div>
+                            <div class="form-group">
+                                <label for="rsync-port">SSH Port</label>
+                                <input type="number" id="rsync-port" class="form-control" value="22">
+                            </div>
+                            <div class="deploy-actions">
+                                <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection (Dry Run)</span></button>
+                                <button type="button" class="btn btn-deploy deploy-deploy-btn"><div class="progress-wipe"></div><span>Deploy Now</span></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- S3 Configuration -->
+                <div id="s3-deploy-pane" class="deploy-pane">
+                    <div class="deploy-section">
+                        <h3>AWS S3 Configuration</h3>
+                        <form id="s3-form">
+                            <div class="form-group">
+                                <label for="s3-bucket">Bucket Name</label>
+                                <input type="text" id="s3-bucket" class="form-control" placeholder="my-gallery-bucket">
+                            </div>
+                            <div class="form-group">
+                                <label for="s3-region">Region</label>
+                                <input type="text" id="s3-region" class="form-control" placeholder="us-east-1">
+                            </div>
+                            <div class="form-group">
+                                <p style="margin: 5px 0; font-size: 14px; color: var(--text-secondary);">Set AWS credentials via environment variables:<br>
+                                <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code></p>
+                            </div>
                             <div class="deploy-actions">
                                 <button type="button" class="btn btn-primary deploy-save-btn">Save Configuration</button>
                                 <button type="button" class="btn btn-secondary deploy-test-btn"><span>Test Connection</span></button>
