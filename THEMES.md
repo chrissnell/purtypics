@@ -16,7 +16,7 @@ Clean, modern layout with a light background and card-based album grid. Crisp ty
 
 | Gallery | Album |
 |---------|-------|
-| ![Aperture gallery](.assets/themes/aperture.png) | ![Aperture album](.assets/themes/aperture-album.png) |
+| [![Aperture gallery](.assets/themes/thumbs/aperture.png)](.assets/themes/aperture.png) | [![Aperture album](.assets/themes/thumbs/aperture-album.png)](.assets/themes/aperture-album.png) |
 
 ---
 
@@ -26,7 +26,7 @@ Warm, artisanal feel with a creamy background and soft shadows. Photos presented
 
 | Gallery | Album |
 |---------|-------|
-| ![Atelier gallery](.assets/themes/atelier.png) | ![Atelier album](.assets/themes/atelier-album.png) |
+| [![Atelier gallery](.assets/themes/thumbs/atelier.png)](.assets/themes/atelier.png) | [![Atelier album](.assets/themes/thumbs/atelier-album.png)](.assets/themes/atelier-album.png) |
 
 ---
 
@@ -36,7 +36,7 @@ Technical blueprint aesthetic with a deep blue background and white grid lines. 
 
 | Gallery | Album |
 |---------|-------|
-| ![Blueprint gallery](.assets/themes/blueprint.png) | ![Blueprint album](.assets/themes/blueprint-album.png) |
+| [![Blueprint gallery](.assets/themes/thumbs/blueprint.png)](.assets/themes/blueprint.png) | [![Blueprint album](.assets/themes/thumbs/blueprint-album.png)](.assets/themes/blueprint-album.png) |
 
 ---
 
@@ -46,7 +46,7 @@ High-contrast black and white with bold typography and zero decoration. Raw, unc
 
 | Gallery | Album |
 |---------|-------|
-| ![Brutalist gallery](.assets/themes/brutalist.png) | ![Brutalist album](.assets/themes/brutalist-album.png) |
+| [![Brutalist gallery](.assets/themes/thumbs/brutalist.png)](.assets/themes/brutalist.png) | [![Brutalist album](.assets/themes/thumbs/brutalist-album.png)](.assets/themes/brutalist-album.png) |
 
 ---
 
@@ -56,7 +56,7 @@ Breezy coastal palette with sandy tones and ocean-blue accents. Relaxed typograp
 
 | Gallery | Album |
 |---------|-------|
-| ![Coast gallery](.assets/themes/coast.png) | ![Coast album](.assets/themes/coast-album.png) |
+| [![Coast gallery](.assets/themes/thumbs/coast.png)](.assets/themes/coast.png) | [![Coast album](.assets/themes/thumbs/coast-album.png)](.assets/themes/coast-album.png) |
 
 ---
 
@@ -66,7 +66,7 @@ Dark background with warm amber accents — photos glow against the darkness. Pe
 
 | Gallery | Album |
 |---------|-------|
-| ![Darkroom gallery](.assets/themes/darkroom.png) | ![Darkroom album](.assets/themes/darkroom-album.png) |
+| [![Darkroom gallery](.assets/themes/thumbs/darkroom.png)](.assets/themes/darkroom.png) | [![Darkroom album](.assets/themes/thumbs/darkroom-album.png)](.assets/themes/darkroom-album.png) |
 
 ---
 
@@ -76,7 +76,7 @@ Soft pastel palette with dotted borders and a clean masonry layout. A balanced s
 
 | Gallery | Album |
 |---------|-------|
-| ![Default gallery](.assets/themes/default.png) | ![Default album](.assets/themes/default-album.png) |
+| [![Default gallery](.assets/themes/thumbs/default.png)](.assets/themes/default.png) | [![Default album](.assets/themes/thumbs/default-album.png)](.assets/themes/default-album.png) |
 
 ---
 
@@ -86,7 +86,7 @@ Warm, fiery palette with deep reds and glowing orange highlights. Bold and drama
 
 | Gallery | Album |
 |---------|-------|
-| ![Ember gallery](.assets/themes/ember.png) | ![Ember album](.assets/themes/ember-album.png) |
+| [![Ember gallery](.assets/themes/thumbs/ember.png)](.assets/themes/ember.png) | [![Ember album](.assets/themes/thumbs/ember-album.png)](.assets/themes/ember-album.png) |
 
 ---
 
@@ -96,7 +96,7 @@ Japanese-inspired minimalism with muted earth tones, generous whitespace, and re
 
 | Gallery | Album |
 |---------|-------|
-| ![Kyoto gallery](.assets/themes/kyoto.png) | ![Kyoto album](.assets/themes/kyoto-album.png) |
+| [![Kyoto gallery](.assets/themes/thumbs/kyoto.png)](.assets/themes/kyoto.png) | [![Kyoto album](.assets/themes/thumbs/kyoto-album.png)](.assets/themes/kyoto-album.png) |
 
 ---
 
@@ -106,7 +106,7 @@ Monochrome elegance — grayscale UI with clean lines and understated typography
 
 | Gallery | Album |
 |---------|-------|
-| ![Mono gallery](.assets/themes/mono.png) | ![Mono album](.assets/themes/mono-album.png) |
+| [![Mono gallery](.assets/themes/thumbs/mono.png)](.assets/themes/mono.png) | [![Mono album](.assets/themes/thumbs/mono-album.png)](.assets/themes/mono-album.png) |
 
 ---
 
@@ -116,7 +116,7 @@ Scandinavian calm with generous whitespace, cool blue-gray tones, and elegant se
 
 | Gallery | Album |
 |---------|-------|
-| ![Nordic gallery](.assets/themes/nordic.png) | ![Nordic album](.assets/themes/nordic-album.png) |
+| [![Nordic gallery](.assets/themes/thumbs/nordic.png)](.assets/themes/nordic.png) | [![Nordic album](.assets/themes/thumbs/nordic-album.png)](.assets/themes/nordic-album.png) |
 
 ---
 
@@ -126,7 +126,7 @@ Nostalgic instant-photo cards with a handwriting font and slight rotation. Photo
 
 | Gallery | Album |
 |---------|-------|
-| ![Polaroid gallery](.assets/themes/polaroid.png) | ![Polaroid album](.assets/themes/polaroid-album.png) |
+| [![Polaroid gallery](.assets/themes/thumbs/polaroid.png)](.assets/themes/polaroid.png) | [![Polaroid album](.assets/themes/thumbs/polaroid-album.png)](.assets/themes/polaroid-album.png) |
 
 ---
 
@@ -136,7 +136,7 @@ Gallery-wall presentation with a rich dark background and elegant framing. Photo
 
 | Gallery | Album |
 |---------|-------|
-| ![Salon gallery](.assets/themes/salon.png) | ![Salon album](.assets/themes/salon-album.png) |
+| [![Salon gallery](.assets/themes/thumbs/salon.png)](.assets/themes/salon.png) | [![Salon album](.assets/themes/thumbs/salon-album.png)](.assets/themes/salon-album.png) |
 
 ---
 
