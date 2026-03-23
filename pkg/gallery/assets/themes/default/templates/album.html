@@ -16,7 +16,16 @@
 <div class="masonry-grid" id="photos-grid">
     <div class="grid-sizer"></div>
     {{range .Album.Photos}}
-    <div class="grid-item photo-card{{if .IsVideo}} video-item{{end}}" data-photo-id="{{.ID}}"{{if .IsVideo}} data-video="true" data-video-src="..{{.VideoPath}}"{{end}}>
+    <div class="grid-item photo-card{{if .IsVideo}} video-item{{end}}" data-photo-id="{{.ID}}"{{if .IsVideo}} data-video="true" data-video-src="..{{.VideoPath}}"{{end}}{{if .EXIF}}
+         data-camera="{{.EXIF.Camera}}"
+         data-lens="{{.EXIF.Lens}}"
+         data-iso="{{if .EXIF.ISO}}{{.EXIF.ISO}}{{end}}"
+         data-aperture="{{if .EXIF.Aperture}}{{printf "%.1f" .EXIF.Aperture}}{{end}}"
+         data-shutter="{{.EXIF.ShutterSpeed}}"
+         data-focal="{{if .EXIF.FocalLength}}{{.EXIF.FocalLength}}{{end}}"
+         data-datetime="{{if not .EXIF.DateTime.IsZero}}{{.EXIF.DateTime.Format "Jan 2, 2006 at 3:04PM"}}{{end}}"
+         {{if .EXIF.GPS}}data-lat="{{.EXIF.GPS.Latitude}}" data-lng="{{.EXIF.GPS.Longitude}}"{{end}}
+         {{end}}>
         <a href="..{{if .IsVideo}}{{.VideoPath}}{{else}}{{if index .Thumbnails "full"}}{{index .Thumbnails "full"}}{{end}}{{end}}" class="photo-link" data-lightbox="album">
             {{if .IsVideo}}
             <div class="video-container">

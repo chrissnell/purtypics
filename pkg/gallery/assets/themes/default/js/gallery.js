@@ -120,6 +120,8 @@ function initializeLightbox(links) {
         <div class="lightbox-content">
             <img class="lightbox-image" src="" alt="">
             <video class="lightbox-video" controls preload="metadata"></video>
+            <div class="lightbox-info"></div>
+            <div class="lightbox-exif"></div>
             <button class="lightbox-close">&times;</button>
             <button class="lightbox-prev">‹</button>
             <button class="lightbox-next">›</button>
@@ -129,6 +131,7 @@ function initializeLightbox(links) {
 
     const lightboxImage = lightbox.querySelector('.lightbox-image');
     const lightboxVideo = lightbox.querySelector('.lightbox-video');
+    const lightboxExif = lightbox.querySelector('.lightbox-exif');
     const closeBtn = lightbox.querySelector('.lightbox-close');
     const prevBtn = lightbox.querySelector('.lightbox-prev');
     const nextBtn = lightbox.querySelector('.lightbox-next');
@@ -198,6 +201,31 @@ function initializeLightbox(links) {
             lightboxImage.alt = link.querySelector('img').alt;
             lightboxImage.style.display = 'block';
         }
+
+        // Show EXIF data
+        if (card) {
+            const parts = [];
+            if (card.dataset.camera) parts.push(card.dataset.camera);
+            if (card.dataset.lens) parts.push(card.dataset.lens);
+
+            const settings = [];
+            if (card.dataset.focal) settings.push(card.dataset.focal + 'mm');
+            if (card.dataset.aperture) settings.push('f/' + card.dataset.aperture);
+            if (card.dataset.shutter) settings.push(card.dataset.shutter + 's');
+            if (card.dataset.iso) settings.push('ISO ' + card.dataset.iso);
+            if (settings.length) parts.push(settings.join(' · '));
+
+            if (card.dataset.datetime) parts.push(card.dataset.datetime);
+
+            if (parts.length) {
+                lightboxExif.innerHTML = parts.map(p => '<span>' + p + '</span>').join('');
+                lightboxExif.style.display = 'block';
+            } else {
+                lightboxExif.style.display = 'none';
+            }
+        } else {
+            lightboxExif.style.display = 'none';
+        }
     }
 
     function closeLightbox() {
@@ -205,6 +233,8 @@ function initializeLightbox(links) {
         lightboxVideo.pause();
         lightboxVideo.src = '';
         lightboxVideo.style.display = 'none';
+        lightboxExif.style.display = 'none';
+        lightboxExif.innerHTML = '';
     }
 }
 
@@ -277,11 +307,47 @@ const lightboxStyles = `
     transform: translateY(-50%);
 }
 
+.lightbox-info {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 0 0;
+}
+
+.lightbox-exif {
+    display: none;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    padding: 0.25rem 0;
+}
+
+.lightbox-exif span {
+    display: inline-block;
+}
+
+.lightbox-exif span + span::before {
+    content: ' · ';
+    margin: 0 0.25rem;
+}
+
 @media (max-width: 768px) {
     .lightbox-prev,
     .lightbox-next {
         padding: 5px 10px;
         font-size: 1.5rem;
+    }
+
+    .lightbox-exif {
+        font-size: 0.7rem;
+    }
+
+    .lightbox-exif span {
+        display: block;
+    }
+
+    .lightbox-exif span + span::before {
+        content: '';
+        margin: 0;
     }
 }
 `;
