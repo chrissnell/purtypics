@@ -13,6 +13,12 @@ var assetsFS embed.FS
 
 const defaultTheme = "default"
 
+// EmbeddedThemesFS returns the embedded themes directory for listing built-in themes.
+func EmbeddedThemesFS() fs.FS {
+	sub, _ := fs.Sub(assetsFS, "assets/themes")
+	return sub
+}
+
 // ThemeFS provides access to theme files with fallback to the embedded default theme.
 // Resolution order for a given theme name:
 //   1. User theme directory: <sourcePath>/themes/<name>/

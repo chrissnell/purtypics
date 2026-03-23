@@ -48,6 +48,13 @@ const editorHTML = `<!DOCTYPE html>
                         <input type="text" id="gallery-copyright" class="form-control">
                     </div>
                     <div class="form-group">
+                        <label for="gallery-theme">Theme</label>
+                        <select id="gallery-theme" class="form-control">
+                            <option value="">default</option>
+                        </select>
+                        <p style="margin-top: 5px; font-size: 12px; color: var(--text-secondary);">Select a gallery theme. Place custom themes in themes/ within your source directory.</p>
+                    </div>
+                    <div class="form-group">
                         <label>
                             <input type="checkbox" id="gallery-show-locations">
                             Show Photo Locations
@@ -983,6 +990,26 @@ function updateGalleryForm() {
     document.getElementById('gallery-author').value = metadata.author || '';
     document.getElementById('gallery-copyright').value = metadata.copyright || '';
     document.getElementById('gallery-show-locations').checked = metadata.show_locations || false;
+    loadThemes();
+}
+
+// Load available themes and set current selection
+async function loadThemes() {
+    try {
+        const response = await fetch('/api/themes');
+        const themes = await response.json();
+        const select = document.getElementById('gallery-theme');
+        select.innerHTML = '';
+        themes.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name === 'default' ? '' : name;
+            opt.textContent = name;
+            select.appendChild(opt);
+        });
+        select.value = metadata.theme || '';
+    } catch (error) {
+        console.error('Error loading themes:', error);
+    }
 }
 
 // Render albums grid
@@ -1384,8 +1411,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Gallery form updates
-    document.getElementById('gallery-form').addEventListener('input', (e) => {
+    // Gallery form updates (input for text fields, change for selects/checkboxes)
+    const galleryFormHandler = (e) => {
         const field = e.target.id.replace('gallery-', '').replace(/-/g, '_');
         if (e.target.type === 'checkbox') {
             metadata[field] = e.target.checked;
@@ -1393,7 +1420,9 @@ document.addEventListener('DOMContentLoaded', () => {
             metadata[field] = e.target.value;
         }
         scheduleAutoSave();
-    });
+    };
+    document.getElementById('gallery-form').addEventListener('input', galleryFormHandler);
+    document.getElementById('gallery-form').addEventListener('change', galleryFormHandler);
     
     // Album form submit
     document.getElementById('album-form').addEventListener('submit', (e) => {

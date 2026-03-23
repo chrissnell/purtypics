@@ -129,6 +129,48 @@ photos:
     favorite: true
 ```
 
+#### Themes
+
+Purtypics includes several built-in themes. Set the theme in `gallery.yaml`:
+
+```yaml
+theme: darkroom
+```
+
+**Built-in themes:**
+
+| Theme | Description |
+|-------|-------------|
+| `default` | Soft pastel palette with dotted borders and masonry layout |
+| `darkroom` | Dark background with warm amber accents — photos glow |
+| `polaroid` | Nostalgic instant-photo cards with handwriting font and slight rotation |
+| `brutalist` | High-contrast black and white, bold type, zero decoration |
+| `nordic` | Scandinavian calm — whitespace, cool blue-gray, elegant serif headings |
+
+You can also select a theme from the **Gallery Settings** tab in the editor (`purtypics edit`).
+
+#### Custom Themes
+
+Create a custom theme by adding a directory under `themes/` in your gallery source:
+
+```
+my-gallery/
+├── vacation-2024/
+├── gallery.yaml
+└── themes/
+    └── mytheme/
+        ├── css/
+        │   └── gallery.css
+        └── templates/       # optional
+            ├── base.html
+            ├── index.html
+            └── album.html
+```
+
+Then set `theme: mytheme` in `gallery.yaml`.
+
+A theme only needs to include files you want to override — anything missing falls back to the built-in default. For example, a CSS-only theme just needs `css/gallery.css`. Look at the [default theme](pkg/gallery/assets/themes/default/) as a reference for available template variables and CSS classes.
+
 ### Deployment
 
 #### rsync Deployment

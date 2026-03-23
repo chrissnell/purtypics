@@ -101,6 +101,7 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 	mux.HandleFunc("/api/save", s.handleSave)
 	mux.HandleFunc("/api/generate", s.handleGenerate)
 	mux.HandleFunc("/api/generate/progress", s.handleGenerateProgress)
+	mux.HandleFunc("/api/themes", s.handleThemes)
 	mux.HandleFunc("/api/deploy-config", s.handleDeployConfig)
 	mux.HandleFunc("/api/deploy", s.handleDeploy)
 	mux.HandleFunc("/api/deploy/progress", s.handleDeployProgress)
