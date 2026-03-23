@@ -14,6 +14,7 @@ A fast, modern static photo gallery generator with built-in metadata editing.
 - **Video Support**: Handles videos with automatic thumbnail generation
 - **EXIF Data**: Extracts and displays camera settings and location data
 - **Responsive Design**: Beautiful masonry layout that works on all devices
+- **[13 Built-in Themes](THEMES.md)**: From minimal to dramatic — find the right look for your gallery
 - **Easy Deployment**: Deploy to any static host (rsync, S3, Cloudflare Pages)
 
 ## Quick Start
@@ -131,21 +132,29 @@ photos:
 
 #### Themes
 
-Purtypics includes several built-in themes. Set the theme in `gallery.yaml`:
+Purtypics ships with **13 built-in themes**. Set the theme in `gallery.yaml`:
 
 ```yaml
 theme: darkroom
 ```
 
-**Built-in themes:**
-
 | Theme | Description |
 |-------|-------------|
-| `default` | Soft pastel palette with dotted borders and masonry layout |
-| `darkroom` | Dark background with warm amber accents — photos glow |
-| `polaroid` | Nostalgic instant-photo cards with handwriting font and slight rotation |
+| `aperture` | Clean, modern cards with a bold accent divider |
+| `atelier` | Warm, artisanal feel with creamy background and soft shadows |
+| `blueprint` | Deep blue background with white grid lines and drafting-table aesthetic |
 | `brutalist` | High-contrast black and white, bold type, zero decoration |
+| `coast` | Breezy coastal palette with sandy tones and ocean-blue accents |
+| `darkroom` | Dark background with warm amber accents — photos glow |
+| `default` | Soft pastel palette with dotted borders and masonry layout |
+| `ember` | Warm, fiery palette with deep reds and glowing orange highlights |
+| `kyoto` | Japanese-inspired minimalism with muted earth tones |
+| `mono` | Monochrome elegance — grayscale UI with clean lines |
 | `nordic` | Scandinavian calm — whitespace, cool blue-gray, elegant serif headings |
+| `polaroid` | Nostalgic instant-photo cards with handwriting font and slight rotation |
+| `salon` | Gallery-wall presentation with rich dark background and elegant framing |
+
+See the **[Theme Gallery](THEMES.md)** for screenshots of every theme.
 
 You can also select a theme from the **Gallery Settings** tab in the editor (`purtypics edit`).
 
