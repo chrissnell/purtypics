@@ -33,8 +33,18 @@ type HTMLTemplateData struct {
 
 // GenerateHTMLFromTemplates generates the gallery HTML using the embedded templates
 func (g *Generator) GenerateHTMLFromTemplates(albums []Album) error {
+	// Resolve theme
+	themeName := ""
+	if g.metadata != nil {
+		themeName = g.metadata.Theme
+	}
+	themeFS, err := NewThemeFS(themeName, g.SourcePath)
+	if err != nil {
+		return fmt.Errorf("failed to load theme: %w", err)
+	}
+
 	// Get the template filesystem
-	templateFS, err := GetTemplateFS()
+	templateFS, err := themeFS.GetTemplateFS()
 	if err != nil {
 		return fmt.Errorf("failed to get template filesystem: %w", err)
 	}
@@ -46,7 +56,7 @@ func (g *Generator) GenerateHTMLFromTemplates(albums []Album) error {
 	}
 
 	// Copy static assets (CSS, JS)
-	if err := g.copyStaticAssets(); err != nil {
+	if err := g.copyThemeAssets(themeFS); err != nil {
 		return fmt.Errorf("failed to copy static assets: %w", err)
 	}
 
@@ -82,78 +92,44 @@ func (g *Generator) GenerateHTMLFromTemplates(albums []Album) error {
 	return nil
 }
 
-// copyStaticAssets copies CSS and JS files to the output directory
-func (g *Generator) copyStaticAssets() error {
-	staticFS, err := GetStaticFS()
+// copyThemeAssets copies CSS and JS files from the theme to the output directory
+func (g *Generator) copyThemeAssets(themeFS *ThemeFS) error {
+	staticFS, err := themeFS.GetStaticFS()
 	if err != nil {
 		return err
 	}
 
-	// Create css and js directories
-	cssDir := filepath.Join(g.OutputPath, "css")
-	jsDir := filepath.Join(g.OutputPath, "js")
-
-	if err := os.MkdirAll(cssDir, 0755); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(jsDir, 0755); err != nil {
-		return err
-	}
-
-	// Copy CSS files
-	if err := fs.WalkDir(staticFS, "css", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
+	for _, dir := range []string{"css", "js"} {
+		outDir := filepath.Join(g.OutputPath, dir)
+		if err := os.MkdirAll(outDir, 0755); err != nil {
 			return err
 		}
-		if d.IsDir() {
-			return nil
-		}
 
-		src, err := staticFS.Open(path)
-		if err != nil {
+		if err := fs.WalkDir(staticFS, dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+
+			src, err := staticFS.Open(path)
+			if err != nil {
+				return err
+			}
+			defer src.Close()
+
+			dest, err := os.Create(filepath.Join(g.OutputPath, path))
+			if err != nil {
+				return err
+			}
+			defer dest.Close()
+
+			_, err = io.Copy(dest, src)
 			return err
+		}); err != nil {
+			return fmt.Errorf("failed to copy %s files: %w", dir, err)
 		}
-		defer src.Close()
-
-		destPath := filepath.Join(g.OutputPath, path)
-		dest, err := os.Create(destPath)
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		_, err = io.Copy(dest, src)
-		return err
-	}); err != nil {
-		return fmt.Errorf("failed to copy CSS files: %w", err)
-	}
-
-	// Copy JS files
-	if err := fs.WalkDir(staticFS, "js", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-
-		src, err := staticFS.Open(path)
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-
-		destPath := filepath.Join(g.OutputPath, path)
-		dest, err := os.Create(destPath)
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		_, err = io.Copy(dest, src)
-		return err
-	}); err != nil {
-		return fmt.Errorf("failed to copy JS files: %w", err)
 	}
 
 	return nil

@@ -10,6 +10,7 @@ type GalleryMetadata struct {
 	Description   string                     `yaml:"description" json:"description"`
 	Author        string                     `yaml:"author" json:"author"`
 	Copyright     string                     `yaml:"copyright" json:"copyright"`
+	Theme         string                     `yaml:"theme,omitempty" json:"theme,omitempty"`
 	ShowLocations bool                       `yaml:"show_locations" json:"show_locations"`
 	AlbumOrder    []string                   `yaml:"album_order,omitempty" json:"album_order"`
 	Albums        map[string]*AlbumMetadata  `yaml:"albums" json:"albums"`
