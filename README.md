@@ -19,48 +19,47 @@ Check out a <a href="https://chrissnell.com/gallery" target="_blank">live Purtyp
 
 ## Quick Start
 
+### 1. Install
+
+<!-- begin:installer-links (auto-updated by make release) -->
+| Platform | Installer |
+|----------|-----------|
+| **macOS (Apple Silicon)** | [purtypics_1.3.0_macOS_arm64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics_1.3.0_macOS_arm64.tar.gz) |
+| **macOS (Intel)** | [purtypics_1.3.0_macOS_x86_64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics_1.3.0_macOS_x86_64.tar.gz) |
+| **Linux (x86_64 deb)** | [purtypics_1.3.0_linux_amd64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics_1.3.0_linux_amd64.deb) |
+| **Linux (x86_64 rpm)** | [purtypics_1.3.0_linux_amd64.rpm](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics_1.3.0_linux_amd64.rpm) |
+| **Linux (arm64 deb)** | [purtypics_1.3.0_linux_arm64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics_1.3.0_linux_arm64.deb) |
+| **Windows** | [purtypics-installer.exe](https://github.com/chrissnell/purtypics/releases/download/v1.3.0/purtypics-installer.exe) |
+<!-- end:installer-links -->
+
+See all platforms on the [releases page](https://github.com/chrissnell/purtypics/releases).
+
+### 2. Launch the editor and generate
+
 ```bash
-# Install purtypics
-go install github.com/cjs/purtypics@latest
-
-# Generate a gallery from your photos
-purtypics generate /path/to/photos
-
-# Edit metadata with the built-in editor
-purtypics edit /path/to/photos
+# Open the metadata editor — add titles, descriptions, pick a theme,
+# and click "Generate Gallery" when you're ready
+purtypics edit /path/to/photos -o /var/www/gallery
 
 # Deploy to your server
 purtypics deploy
 ```
 
+The editor opens a browser UI where you can organize albums, tag favorites, set cover photos, and choose a theme — no YAML editing required. When everything looks right, click **Generate Gallery** and your site is built to the output path you specified with `-o`.
+
 ## Installation
+
+The download links above are the quickest way to get started. You can also install from source or via package managers.
 
 ### From Source
 
 ```bash
-git clone https://github.com/cjs/purtypics.git
+git clone https://github.com/chrissnell/purtypics.git
 cd purtypics
 make build
 ```
 
-### Pre-built Binaries
-
-Download the latest release for your platform from the [releases page](https://github.com/cjs/purtypics/releases).
-
 ## Usage
-
-### Basic Gallery Generation
-
-The simplest way to create a gallery:
-
-```bash
-purtypics generate
-```
-
-This will:
-1. Scan the current directory for photos and videos
-2. Generate optimized thumbnails in multiple sizes
-3. Create a static website in the `output/` directory
 
 ### Gallery Structure
 
@@ -75,43 +74,45 @@ my-gallery/
 ├── family-reunion/
 │   ├── DSC_001.jpg
 │   └── DSC_002.jpg
-└── gallery.yaml      # Optional metadata file
+└── gallery.yaml      # Auto-generated metadata file
 ```
 
 Each directory becomes an album in your gallery.
 
-### Editing Metadata
+### Metadata Editor (Recommended)
 
-Launch the web-based editor to add titles and descriptions:
+The easiest way to set up and generate your gallery is the built-in editor:
 
 ```bash
-purtypics edit
+purtypics edit /path/to/photos -o /path/to/output
 ```
 
-This opens a browser where you can:
+This opens a browser UI where you can:
 - Add titles and descriptions to photos
-- Mark favorites
-- Hide photos from the gallery
+- Mark favorites and hide photos
 - Set album cover photos
-- Edit gallery title and settings
+- Choose a theme from the Gallery Settings tab
+- Edit gallery title and description
+- **Generate your gallery** with the Generate Gallery button
 
-All changes are saved to `gallery.yaml`.
+All changes are saved to `gallery.yaml`. When you're happy with everything, click **Generate Gallery** — the site is built directly to the output path you specified with `-o`.
+
+### Command-Line Generation
+
+You can also generate without the editor:
+
+```bash
+purtypics generate
+purtypics generate -s /photos -o /website
+```
+
+This scans for photos and videos, generates optimized thumbnails, and creates the static site.
 
 ### Advanced Options
 
-#### Custom Paths
-
-```bash
-# Specify source and output directories
-purtypics generate -s /photos -o /website
-
-# Edit with custom paths
-purtypics edit -s /photos
-```
-
 #### Gallery Configuration
 
-Create a `gallery.yaml` file to customize your gallery:
+You can also hand-edit `gallery.yaml` to customize your gallery:
 
 ```yaml
 title: "My Photo Collection"

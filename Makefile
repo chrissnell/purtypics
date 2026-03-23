@@ -82,6 +82,17 @@ dist: clean build-all ## Create distribution packages
 	done
 	@echo "Distribution packages created in $(DIST_DIR)/"
 
+# Release targets
+.PHONY: release
+release: ## Tag a new release, update README installer links, and push
+	@if [ -z "$(TAG)" ]; then echo "Usage: make release TAG=v1.4.0"; exit 1; fi
+	@VERSION=$$(echo "$(TAG)" | sed 's/^v//'); \
+	sed -i'' -e '/<!-- begin:installer-links/,/<!-- end:installer-links/s/[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/'"$$VERSION"'/g' README.md; \
+	git add README.md && \
+	git commit -m "Update installer links to $(TAG)" && \
+	git tag -a "$(TAG)" -m "Release $(TAG)" && \
+	echo "Tagged $(TAG) with updated README links. Push with: git push && git push --tags"
+
 # Help target
 .PHONY: help
 help: ## Show this help message
