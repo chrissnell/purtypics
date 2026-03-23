@@ -78,18 +78,65 @@ func (r *R2Client) EnsureBucket(ctx context.Context, bucket string) error {
 	return nil
 }
 
+// managedDomainInfo is the response from the R2 managed domain endpoints.
+type managedDomainInfo struct {
+	BucketID string `json:"bucketId"`
+	Domain   string `json:"domain"`
+	Enabled  bool   `json:"enabled"`
+}
+
+// getManagedDomain gets the r2.dev managed domain state for the bucket.
+func (r *R2Client) getManagedDomain(ctx context.Context, bucket string) (*managedDomainInfo, error) {
+	apiURL := fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/r2/buckets/%s/domains/managed",
+		r.accountID, bucket)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+r.apiToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting managed domain info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("get managed domain failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Result managedDomainInfo `json:"result"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parsing managed domain info: %w", err)
+	}
+	return &result.Result, nil
+}
+
 // EnablePublicAccess enables the r2.dev managed public domain for the bucket.
+// It first checks if public access is already enabled to avoid unnecessary API calls.
 func (r *R2Client) EnablePublicAccess(ctx context.Context, bucket string) error {
 	if r.apiToken == "" {
 		return fmt.Errorf("CLOUDFLARE_API_TOKEN required to enable R2 public access")
 	}
 
-	apiURL := fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/r2/buckets/%s",
+	// Check if already enabled.
+	info, err := r.getManagedDomain(ctx, bucket)
+	if err != nil {
+		return fmt.Errorf("checking bucket public access: %w", err)
+	}
+	if info.Enabled {
+		return nil
+	}
+
+	apiURL := fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/r2/buckets/%s/domains/managed",
 		r.accountID, bucket)
 
-	// Enable public access on the bucket.
-	payload := `{"public_access":{"enabled":true}}`
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, apiURL, strings.NewReader(payload))
+	payload := `{"enabled":true}`
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, apiURL, strings.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
@@ -104,7 +151,12 @@ func (r *R2Client) EnablePublicAccess(ctx context.Context, bucket string) error 
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("enable public access failed (HTTP %d): %s", resp.StatusCode, string(body))
+		hint := ""
+		if resp.StatusCode == 403 {
+			hint = "\nHint: your CLOUDFLARE_API_TOKEN may lack the 'Workers R2 Storage:Edit' permission. " +
+				"Edit the token at https://dash.cloudflare.com/profile/api-tokens and add this permission."
+		}
+		return fmt.Errorf("enable public access failed (HTTP %d): %s%s", resp.StatusCode, string(body), hint)
 	}
 
 	return nil
@@ -121,46 +173,16 @@ func (r *R2Client) GetPublicURL(ctx context.Context, bucket, customDomain string
 		return "", fmt.Errorf("CLOUDFLARE_API_TOKEN required to get R2 public URL")
 	}
 
-	// Get bucket details to find the r2.dev subdomain.
-	apiURL := fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/r2/buckets/%s",
-		r.accountID, bucket)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	info, err := r.getManagedDomain(ctx, bucket)
 	if err != nil {
-		return "", fmt.Errorf("creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+r.apiToken)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("getting bucket info: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("get bucket info failed (HTTP %d): %s", resp.StatusCode, string(body))
+		return "", err
 	}
 
-	// Parse the response to find the public URL.
-	var result struct {
-		Result struct {
-			PublicAccess struct {
-				R2Dev struct {
-					URL string `json:"url"`
-				} `json:"r2_dev"`
-			} `json:"public_access"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("parsing bucket info: %w", err)
+	if info.Domain != "" {
+		return "https://" + info.Domain, nil
 	}
 
-	if result.Result.PublicAccess.R2Dev.URL != "" {
-		return result.Result.PublicAccess.R2Dev.URL, nil
-	}
-
-	// Fallback: construct from account ID.
+	// Fallback: construct from bucket name.
 	return fmt.Sprintf("https://%s.r2.dev", bucket), nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/zeebo/blake3"
 )
@@ -28,7 +29,8 @@ const (
 type CloudflareDeployer struct {
 	config           *CloudflareConfig
 	output           string
-	token            string
+	token            string // CLOUDFLARE_API_TOKEN
+	jwt              string // short-lived upload JWT, refreshed as needed
 	progressCallback func(int, string)
 }
 
@@ -88,8 +90,38 @@ type uploadMetadata struct {
 	ContentType string `json:"contentType"`
 }
 
+// LogCloudflareCredentials prints which Cloudflare-related env vars are detected.
+func LogCloudflareCredentials(r2Enabled bool) {
+	cfToken := os.Getenv("CLOUDFLARE_API_TOKEN")
+	r2Access := os.Getenv("R2_ACCESS_KEY_ID")
+	r2Secret := os.Getenv("R2_SECRET_ACCESS_KEY")
+
+	fmt.Println("Credential check:")
+	if cfToken != "" {
+		fmt.Printf("  CLOUDFLARE_API_TOKEN: set (%d chars)\n", len(cfToken))
+	} else {
+		fmt.Println("  CLOUDFLARE_API_TOKEN: NOT SET")
+	}
+
+	if r2Enabled {
+		if r2Access != "" {
+			fmt.Printf("  R2_ACCESS_KEY_ID:     set (%d chars)\n", len(r2Access))
+		} else {
+			fmt.Println("  R2_ACCESS_KEY_ID:     NOT SET")
+		}
+		if r2Secret != "" {
+			fmt.Printf("  R2_SECRET_ACCESS_KEY: set (%d chars)\n", len(r2Secret))
+		} else {
+			fmt.Println("  R2_SECRET_ACCESS_KEY: NOT SET")
+		}
+	}
+}
+
 // NewCloudflareDeployer creates a new Cloudflare Pages deployer.
 func NewCloudflareDeployer(config *CloudflareConfig, outputPath string) (*CloudflareDeployer, error) {
+	r2Enabled := config.R2 != nil && config.R2.Enabled
+	LogCloudflareCredentials(r2Enabled)
+
 	token := os.Getenv("CLOUDFLARE_API_TOKEN")
 	if token == "" {
 		return nil, fmt.Errorf("CLOUDFLARE_API_TOKEN environment variable is not set")
@@ -224,13 +256,12 @@ func (c *CloudflareDeployer) Deploy() error {
 	}
 
 	c.progress(30, "Getting upload token...")
-	jwt, err := c.getUploadToken()
-	if err != nil {
+	if err := c.refreshJWT(); err != nil {
 		return fmt.Errorf("getting upload token: %w", err)
 	}
 
 	c.progress(33, "Checking which files need uploading...")
-	missing, err := c.checkMissing(jwt, allHashes)
+	missing, err := c.checkMissing(allHashes)
 	if err != nil {
 		return fmt.Errorf("checking missing files: %w", err)
 	}
@@ -250,13 +281,13 @@ func (c *CloudflareDeployer) Deploy() error {
 	c.progress(36, fmt.Sprintf("Uploading %d/%d files to Pages...", len(toUpload), len(entries)))
 
 	if len(toUpload) > 0 {
-		if err := c.uploadBuckets(jwt, toUpload, len(entries)); err != nil {
+		if err := c.uploadBuckets(toUpload, len(entries)); err != nil {
 			return fmt.Errorf("uploading files: %w", err)
 		}
 	}
 
 	c.progress(88, "Registering files...")
-	if err := c.upsertHashes(jwt, allHashes); err != nil {
+	if err := c.upsertHashes(allHashes); err != nil {
 		return fmt.Errorf("registering hashes: %w", err)
 	}
 
@@ -364,22 +395,26 @@ func (c *CloudflareDeployer) rewriteHTMLEntries(entries []fileEntry, replacement
 		for relPath, r2URL := range replacements {
 			// Templates use paths like "../static/videos/album/file.mov"
 			// or "/static/videos/album/file.mov". Replace all variants.
+			// Order matters: longer prefixes first to avoid re-matching
+			// inside already-replaced R2 URLs (e.g. "/path" matching
+			// inside "https://...r2.dev/path").
 			variants := []string{
 				"../" + relPath,         // from album pages: ../static/videos/...
 				"./" + relPath,          // from index: ./static/videos/...
 				"/" + relPath,           // absolute: /static/videos/...
-				"\"" + relPath + "\"",   // bare in attributes
 			}
 			for _, v := range variants {
 				if strings.Contains(html, v) {
-					// For quoted variants, keep the quotes
-					if strings.HasPrefix(v, "\"") {
-						html = strings.ReplaceAll(html, v, "\""+r2URL+"\"")
-					} else {
-						html = strings.ReplaceAll(html, v, r2URL)
-					}
+					html = strings.ReplaceAll(html, v, r2URL)
 					modified = true
+					break // avoid shorter variants matching inside the R2 URL
 				}
+			}
+			// Also handle bare (unquoted) paths in attributes.
+			bare := "\"" + relPath + "\""
+			if strings.Contains(html, bare) {
+				html = strings.ReplaceAll(html, bare, "\""+r2URL+"\"")
+				modified = true
 			}
 		}
 
@@ -469,47 +504,63 @@ func (c *CloudflareDeployer) collectFiles() ([]fileEntry, []largeFileEntry, erro
 }
 
 // getUploadToken retrieves a JWT for uploading and managing assets.
-func (c *CloudflareDeployer) getUploadToken() (string, error) {
+// refreshJWT fetches a fresh upload JWT and stores it on the deployer.
+func (c *CloudflareDeployer) refreshJWT() error {
 	apiURL := fmt.Sprintf("%s/accounts/%s/pages/projects/%s/upload-token",
 		cloudflareAPIBase, c.config.AccountID, c.config.Project)
 
 	body, statusCode, err := c.apiGet(apiURL)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if statusCode != http.StatusOK {
-		return "", fmt.Errorf("get upload token failed (HTTP %d): %s", statusCode, string(body))
+		return fmt.Errorf("get upload token failed (HTTP %d): %s", statusCode, string(body))
 	}
 
 	var cfResp cloudflareResponse
 	if err := json.Unmarshal(body, &cfResp); err != nil {
-		return "", fmt.Errorf("decoding response: %s", string(body))
+		return fmt.Errorf("decoding response: %s", string(body))
 	}
 	if !cfResp.Success {
-		return "", fmt.Errorf("get upload token failed: %s", formatErrors(cfResp.Errors))
+		return fmt.Errorf("get upload token failed: %s", formatErrors(cfResp.Errors))
 	}
 
 	var result uploadTokenResult
 	if err := json.Unmarshal(cfResp.Result, &result); err != nil {
-		return "", fmt.Errorf("parsing upload token: %w", err)
+		return fmt.Errorf("parsing upload token: %w", err)
 	}
 	if result.JWT == "" {
-		return "", fmt.Errorf("empty upload token returned")
+		return fmt.Errorf("empty upload token returned")
 	}
 
-	return result.JWT, nil
+	c.jwt = result.JWT
+	return nil
+}
+
+// jwtPost performs an API POST using the upload JWT.
+// On 403 (expired JWT), it refreshes the token and retries once.
+func (c *CloudflareDeployer) jwtPost(url, contentType string, payload []byte) ([]byte, error) {
+	body, err := c.apiPost(url, contentType, strings.NewReader(string(payload)), c.jwt)
+	if err != nil && strings.Contains(err.Error(), "HTTP 403") {
+		fmt.Println("Upload token expired, refreshing...")
+		if refreshErr := c.refreshJWT(); refreshErr != nil {
+			return nil, fmt.Errorf("refreshing upload token: %w", refreshErr)
+		}
+		return c.apiPost(url, contentType, strings.NewReader(string(payload)), c.jwt)
+	}
+	return body, err
 }
 
 // checkMissing asks Cloudflare which file hashes it doesn't already have.
-func (c *CloudflareDeployer) checkMissing(jwt string, hashes []string) ([]string, error) {
+func (c *CloudflareDeployer) checkMissing(hashes []string) ([]string, error) {
 	apiURL := fmt.Sprintf("%s/pages/assets/check-missing", cloudflareAPIBase)
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"hashes": hashes,
 	})
 
-	body, err := c.apiPost(apiURL, "application/json", strings.NewReader(string(payload)), jwt)
+	body, err := c.jwtPost(apiURL, "application/json", payload)
 	if err != nil {
 		return nil, fmt.Errorf("check-missing request: %w", err)
 	}
@@ -531,7 +582,7 @@ func (c *CloudflareDeployer) checkMissing(jwt string, hashes []string) ([]string
 }
 
 // uploadBuckets uploads files in size-limited buckets.
-func (c *CloudflareDeployer) uploadBuckets(jwt string, files []fileEntry, totalFiles int) error {
+func (c *CloudflareDeployer) uploadBuckets(files []fileEntry, totalFiles int) error {
 	uploaded := 0
 	batchStart := 0
 
@@ -548,7 +599,7 @@ func (c *CloudflareDeployer) uploadBuckets(jwt string, files []fileEntry, totalF
 			bucketSize += entrySize
 		}
 
-		if err := c.uploadBucket(jwt, bucket); err != nil {
+		if err := c.uploadBucket(bucket); err != nil {
 			return err
 		}
 
@@ -563,7 +614,8 @@ func (c *CloudflareDeployer) uploadBuckets(jwt string, files []fileEntry, totalF
 }
 
 // uploadBucket uploads a single bucket of files as a JSON array.
-func (c *CloudflareDeployer) uploadBucket(jwt string, bucket []fileEntry) error {
+// Retries up to 3 times on network errors with exponential backoff.
+func (c *CloudflareDeployer) uploadBucket(bucket []fileEntry) error {
 	items := make([]uploadItem, 0, len(bucket))
 	for _, entry := range bucket {
 		items = append(items, uploadItem{
@@ -581,31 +633,44 @@ func (c *CloudflareDeployer) uploadBucket(jwt string, bucket []fileEntry) error 
 
 	apiURL := fmt.Sprintf("%s/pages/assets/upload", cloudflareAPIBase)
 
-	body, err := c.apiPost(apiURL, "application/json", strings.NewReader(string(payload)), jwt)
-	if err != nil {
-		return fmt.Errorf("upload bucket: %w", err)
+	const maxRetries = 3
+	var lastErr error
+	for attempt := range maxRetries {
+		if attempt > 0 {
+			delay := time.Duration(1<<uint(attempt-1)) * 5 * time.Second
+			fmt.Printf("Retrying upload (attempt %d/%d) after %v...\n", attempt+1, maxRetries, delay)
+			time.Sleep(delay)
+		}
+
+		body, err := c.jwtPost(apiURL, "application/json", payload)
+		if err != nil {
+			lastErr = fmt.Errorf("upload bucket: %w", err)
+			continue
+		}
+
+		var cfResp cloudflareResponse
+		if err := json.Unmarshal(body, &cfResp); err != nil {
+			return fmt.Errorf("decoding response: %s", string(body))
+		}
+		if !cfResp.Success {
+			return fmt.Errorf("upload failed: %s", formatErrors(cfResp.Errors))
+		}
+
+		return nil
 	}
 
-	var cfResp cloudflareResponse
-	if err := json.Unmarshal(body, &cfResp); err != nil {
-		return fmt.Errorf("decoding response: %s", string(body))
-	}
-	if !cfResp.Success {
-		return fmt.Errorf("upload failed: %s", formatErrors(cfResp.Errors))
-	}
-
-	return nil
+	return lastErr
 }
 
 // upsertHashes registers all file hashes with Cloudflare.
-func (c *CloudflareDeployer) upsertHashes(jwt string, hashes []string) error {
+func (c *CloudflareDeployer) upsertHashes(hashes []string) error {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"hashes": hashes,
 	})
 
 	apiURL := fmt.Sprintf("%s/pages/assets/upsert-hashes", cloudflareAPIBase)
 
-	body, err := c.apiPost(apiURL, "application/json", strings.NewReader(string(payload)), jwt)
+	body, err := c.jwtPost(apiURL, "application/json", payload)
 	if err != nil {
 		return fmt.Errorf("upsert-hashes request: %w", err)
 	}
