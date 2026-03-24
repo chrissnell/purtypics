@@ -279,7 +279,7 @@ main {
 }
 
 .lightbox-image-container {
-  max-width: 90%;
+  max-width: 80%;
   max-height: 90%;
   display: flex;
   flex-direction: column;
@@ -320,28 +320,34 @@ main {
 }
 
 .lightbox-nav {
-  position: absolute;
+  position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 3rem;
   color: white;
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-  padding: 1rem;
+  opacity: 0.85;
+  transition: opacity 0.2s, background 0.2s;
+  padding: 1.5rem 0.75rem;
   user-select: none;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  line-height: 1;
+  z-index: 1001;
 }
 
 .lightbox-nav:hover {
   opacity: 1;
+  background: rgba(255,255,255,0.3);
 }
 
 .lightbox-prev {
-  left: 2rem;
+  left: 0.75rem;
 }
 
 .lightbox-next {
-  right: 2rem;
+  right: 0.75rem;
 }
 
 /* Video styling */
@@ -537,8 +543,8 @@ function initLightbox() {
   lightbox.innerHTML = ` + "`" + `
     <div class="lightbox-content">
       <span class="lightbox-close">&times;</span>
-      <div class="lightbox-nav lightbox-prev">&lt;</div>
-      <div class="lightbox-nav lightbox-next">&gt;</div>
+      <div class="lightbox-nav lightbox-prev">&#10094;</div>
+      <div class="lightbox-nav lightbox-next">&#10095;</div>
       <div class="lightbox-image-container">
         <img src="" alt="" style="display:none;">
         <video controls style="display:none; max-width: 100%; max-height: calc(100vh - 8rem);" preload="metadata"></video>

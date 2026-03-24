@@ -123,8 +123,8 @@ function initializeLightbox(links) {
             <div class="lightbox-info"></div>
             <div class="lightbox-exif"></div>
             <button class="lightbox-close">&times;</button>
-            <button class="lightbox-prev">‹</button>
-            <button class="lightbox-next">›</button>
+            <button class="lightbox-prev">&#10094;</button>
+            <button class="lightbox-next">&#10095;</button>
         </div>
     `;
     document.body.appendChild(lightbox);
@@ -260,7 +260,7 @@ const lightboxStyles = `
 
 .lightbox-content {
     position: relative;
-    max-width: 90%;
+    max-width: 80%;
     max-height: 90%;
     cursor: default;
 }
@@ -271,9 +271,7 @@ const lightboxStyles = `
     object-fit: contain;
 }
 
-.lightbox-close,
-.lightbox-prev,
-.lightbox-next {
+.lightbox-close {
     position: absolute;
     background: rgba(255, 255, 255, 0.1);
     color: white;
@@ -282,29 +280,45 @@ const lightboxStyles = `
     cursor: pointer;
     padding: 10px 15px;
     transition: background 0.3s;
-}
-
-.lightbox-close:hover,
-.lightbox-prev:hover,
-.lightbox-next:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.lightbox-close {
     top: 20px;
     right: 20px;
 }
 
-.lightbox-prev {
-    left: 20px;
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-prev,
+.lightbox-next {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    font-size: 2.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 1.5rem 0.75rem;
+    transition: background 0.2s, opacity 0.2s;
+    opacity: 0.85;
+    border-radius: 4px;
+    line-height: 1;
+    z-index: 1001;
     top: 50%;
     transform: translateY(-50%);
 }
 
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+}
+
+.lightbox-prev {
+    left: 0.75rem;
+}
+
 .lightbox-next {
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 0.75rem;
 }
 
 .lightbox-info {
