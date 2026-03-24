@@ -79,12 +79,12 @@ Check out a <a href="https://chrissnell.com/gallery" target="_blank">live Purtyp
 <!-- begin:installer-links (auto-updated by make release) -->
 | Platform | Installer |
 |----------|-----------|
-| **macOS (Apple Silicon)** | [purtypics_1.4.2_macOS_arm64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics_1.4.2_macOS_arm64.tar.gz) |
-| **macOS (Intel)** | [purtypics_1.4.2_macOS_x86_64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics_1.4.2_macOS_x86_64.tar.gz) |
-| **Linux (x86_64 deb)** | [purtypics_1.4.2_linux_amd64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics_1.4.2_linux_amd64.deb) |
-| **Linux (x86_64 rpm)** | [purtypics_1.4.2_linux_amd64.rpm](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics_1.4.2_linux_amd64.rpm) |
-| **Linux (arm64 deb)** | [purtypics_1.4.2_linux_arm64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics_1.4.2_linux_arm64.deb) |
-| **Windows** | [purtypics-installer.exe](https://github.com/chrissnell/purtypics/releases/download/v1.4.2/purtypics-installer.exe) |
+| **macOS (Apple Silicon)** | [purtypics_1.4.3_macOS_arm64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics_1.4.3_macOS_arm64.tar.gz) |
+| **macOS (Intel)** | [purtypics_1.4.3_macOS_x86_64.tar.gz](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics_1.4.3_macOS_x86_64.tar.gz) |
+| **Linux (x86_64 deb)** | [purtypics_1.4.3_linux_amd64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics_1.4.3_linux_amd64.deb) |
+| **Linux (x86_64 rpm)** | [purtypics_1.4.3_linux_amd64.rpm](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics_1.4.3_linux_amd64.rpm) |
+| **Linux (arm64 deb)** | [purtypics_1.4.3_linux_arm64.deb](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics_1.4.3_linux_arm64.deb) |
+| **Windows** | [purtypics-installer.exe](https://github.com/chrissnell/purtypics/releases/download/v1.4.3/purtypics-installer.exe) |
 <!-- end:installer-links -->
 
 See all platforms on the [releases page](https://github.com/chrissnell/purtypics/releases).
