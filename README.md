@@ -17,6 +17,45 @@ Check out a <a href="https://chrissnell.com/gallery" target="_blank">live Purtyp
 - **[13 Built-in Themes](THEMES.md)**: From minimal to dramatic — find the right look for your gallery
 - **Easy Deployment**: Deploy to any static host (rsync, S3, Cloudflare Pages)
 
+### Screenshots
+
+<table>
+<tr>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/album-editor-drag-n-drop.png"><img src=".assets/screenshots/thumbs/album-editor-drag-n-drop.png" alt="Album Editor"></a><br>
+<b>Album Editor</b><br>
+<sub>Organize albums with drag-and-drop reordering, cover photos, and descriptions</sub>
+</td>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/edit-photo.png"><img src=".assets/screenshots/thumbs/edit-photo.png" alt="Photo Editor"></a><br>
+<b>Photo Editor</b><br>
+<sub>Edit titles, descriptions, and visibility for individual photos</sub>
+</td>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/gallery-settings.png"><img src=".assets/screenshots/thumbs/gallery-settings.png" alt="Gallery Settings"></a><br>
+<b>Gallery Settings</b><br>
+<sub>Configure title, description, author, theme, and location maps</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/rsync-upload.png"><img src=".assets/screenshots/thumbs/rsync-upload.png" alt="Rsync Deployment"></a><br>
+<b>Rsync Deployment</b><br>
+<sub>Deploy over SSH with dry-run testing and one-click publish</sub>
+</td>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/aws-s3-upload.png"><img src=".assets/screenshots/thumbs/aws-s3-upload.png" alt="S3 Deployment"></a><br>
+<b>S3 Deployment</b><br>
+<sub>Deploy to AWS S3 with connection testing and incremental sync</sub>
+</td>
+<td align="center" valign="top" width="33%">
+<a href=".assets/screenshots/cloudflare-upload.png"><img src=".assets/screenshots/thumbs/cloudflare-upload.png" alt="Cloudflare Deployment"></a><br>
+<b>Cloudflare Pages</b><br>
+<sub>Deploy to Cloudflare Pages with R2 support for large files</sub>
+</td>
+</tr>
+</table>
+
 ## Quick Start
 
 ### 1. Install
