@@ -53,7 +53,7 @@ func (s *Server) runGeneration() {
 	outputPath := s.OutputPath
 
 	// Create generator with progress callback
-	generator := gallery.NewGenerator(s.SourcePath, outputPath, s.metadata.Title, "", false)
+	generator := gallery.NewGenerator(s.SourcePath, outputPath, s.metadata.Title, "", s.Version, false)
 	generator.MetadataPath = s.MetadataPath
 	
 	// First, scan to count total photos

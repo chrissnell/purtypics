@@ -16,6 +16,7 @@ type Server struct {
 	SourcePath   string
 	MetadataPath string
 	OutputPath   string
+	Version      string
 	Port         int
 	metadata     *metadata.GalleryMetadata
 	albums       []gallery.Album

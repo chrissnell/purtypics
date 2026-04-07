@@ -34,11 +34,9 @@ type Generator struct {
 }
 
 // NewGenerator creates a new gallery generator
-func NewGenerator(sourcePath, outputPath, siteTitle, baseURL string, verbose bool) *Generator {
-	// Get version from build info
-	version := "v1.0.9"
+func NewGenerator(sourcePath, outputPath, siteTitle, baseURL, version string, verbose bool) *Generator {
 	commitHash := "dev"
-	
+
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key == "vcs.revision" {
@@ -47,12 +45,12 @@ func NewGenerator(sourcePath, outputPath, siteTitle, baseURL string, verbose boo
 				}
 			}
 		}
-		// Try to get version from module
-		if info.Main.Version != "" && info.Main.Version != "(devel)" {
-			version = info.Main.Version
-		}
 	}
-	
+
+	if version == "" || version == "dev" {
+		version = "dev"
+	}
+
 	return &Generator{
 		SourcePath:     sourcePath,
 		OutputPath:     outputPath,

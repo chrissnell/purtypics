@@ -108,7 +108,7 @@ Otherwise, it expects a gallery directory with photos, gallery.yaml, and output/
 		}
 
 		// Create gallery generator
-		generator := gallery.NewGenerator(sourcePath, outputPath, title, "", generateVerbose)
+		generator := gallery.NewGenerator(sourcePath, outputPath, title, "", version, generateVerbose)
 		generator.MetadataPath = metadataPath
 		generator.ProgressCallback = progressCallback
 

@@ -82,6 +82,7 @@ created in the output directory (--output flag, defaults to ./gallery).`,
 		// Create and start the editor server
 		server := editor.NewServer(sourcePath, metadataPath, editPort)
 		server.OutputPath = outputPath
+		server.Version = version
 		
 		// Get the actual port the server will listen on
 		actualPort, listener, err := server.GetActualPort()
