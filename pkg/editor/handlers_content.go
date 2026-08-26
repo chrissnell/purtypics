@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"encoding/json"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -85,8 +84,7 @@ func (s *Server) handleAlbums(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(albums)
+	writeJSON(w, albums)
 }
 
 // handlePhotos returns photos for a specific album
@@ -96,9 +94,13 @@ func (s *Server) handlePhotos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract album path from URL
-	albumPath := strings.TrimPrefix(r.URL.Path, "/api/photos/")
-	albumPath = filepath.Join(s.SourcePath, albumPath)
+	// Extract album path from URL and resolve safely under SourcePath.
+	rawAlbumPath := strings.TrimPrefix(r.URL.Path, "/api/photos/")
+	albumPath, err := resolveWithinRoot(s.SourcePath, rawAlbumPath)
+	if err != nil {
+		http.Error(w, "Invalid album path", http.StatusBadRequest)
+		return
+	}
 
 	// Find the album
 	var album *gallery.Album
@@ -145,6 +147,5 @@ func (s *Server) handlePhotos(w http.ResponseWriter, r *http.Request) {
 		photos[i] = resp
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(photos)
+	writeJSON(w, photos)
 }

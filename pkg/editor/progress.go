@@ -7,6 +7,7 @@ type ProgressTracker struct {
 	Progress int
 	Status   string
 	Error    string
+	running  bool
 	mutex    sync.RWMutex
 }
 
@@ -15,6 +16,29 @@ func NewProgressTracker() *ProgressTracker {
 	return &ProgressTracker{
 		Status: "idle",
 	}
+}
+
+// TryStart atomically claims the tracker for a new operation. Returns false
+// if an operation is already in progress — callers should reject the new
+// request with 409 Conflict rather than corrupting shared state.
+func (pt *ProgressTracker) TryStart() bool {
+	pt.mutex.Lock()
+	defer pt.mutex.Unlock()
+	if pt.running {
+		return false
+	}
+	pt.running = true
+	pt.Progress = 0
+	pt.Status = "starting"
+	pt.Error = ""
+	return true
+}
+
+// Finish clears the running flag. Safe to call even if Start was never called.
+func (pt *ProgressTracker) Finish() {
+	pt.mutex.Lock()
+	defer pt.mutex.Unlock()
+	pt.running = false
 }
 
 // Update updates the progress and status.
@@ -31,6 +55,7 @@ func (pt *ProgressTracker) SetError(err string) {
 	defer pt.mutex.Unlock()
 	pt.Error = err
 	pt.Status = "error"
+	pt.running = false
 }
 
 // Reset resets the tracker to idle state.
@@ -40,6 +65,7 @@ func (pt *ProgressTracker) Reset() {
 	pt.Progress = 0
 	pt.Status = "idle"
 	pt.Error = ""
+	pt.running = false
 }
 
 // Get returns the current progress state.

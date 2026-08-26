@@ -16,8 +16,7 @@ func (s *Server) handleMetadata(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s.metadata)
+	writeJSON(w, s.metadata)
 }
 
 // handleSave saves the updated metadata
@@ -42,8 +41,7 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request) {
 	// Update in-memory copy
 	s.metadata = &meta
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
+	writeJSON(w, map[string]string{"status": "saved"})
 }
 
 // handleDeployConfig returns deployment configuration
@@ -58,9 +56,8 @@ func (s *Server) handleDeployConfig(w http.ResponseWriter, r *http.Request) {
 			config = &deploy.Config{}
 		}
 		
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(config)
-		
+		writeJSON(w, config)
+
 	case http.MethodPost:
 		var config deploy.Config
 		if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
@@ -75,9 +72,8 @@ func (s *Server) handleDeployConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
-		
+		writeJSON(w, map[string]string{"status": "saved"})
+
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

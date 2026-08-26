@@ -102,7 +102,10 @@ func (r *R2Client) getManagedDomain(ctx context.Context, bucket string) (*manage
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading managed domain response: %w", err)
+	}
 	if resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("get managed domain failed (HTTP %d): %s", resp.StatusCode, string(body))
 	}
@@ -149,7 +152,10 @@ func (r *R2Client) EnablePublicAccess(ctx context.Context, bucket string) error 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading enable public access response: %w", err)
+	}
 	if resp.StatusCode >= 300 {
 		hint := ""
 		if resp.StatusCode == 403 {

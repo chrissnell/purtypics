@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"sync"
 
@@ -195,8 +196,11 @@ func (g *Generator) processAlbum(album *Album) error {
 		g.ProgressCallback(0, len(album.Photos), fmt.Sprintf("Processing photos in %s", album.Title))
 	}
 
-	// Limit concurrent processing
-	sem := make(chan struct{}, 4)
+	// Bound concurrency by CPU count — image resize is CPU-bound and each
+	// worker also holds a decoded image in memory, so unbounded goroutines
+	// would blow the heap on large albums.
+	workers := max(runtime.NumCPU(), 2)
+	sem := make(chan struct{}, workers)
 
 	for i := range album.Photos {
 		wg.Add(1)
@@ -250,27 +254,22 @@ func (g *Generator) processAlbum(album *Album) error {
 					return
 				}
 			} else {
-				// Handle image processing
-				// Get image dimensions
-				if width, height, err := image.GetImageDimensions(photo.Path); err == nil {
-					photo.Width = width
-					photo.Height = height
-				}
-
-				// Extract EXIF data
-				if exifData, err := exif.ExtractMetadata(photo.Path); err == nil {
-					photo.EXIF = exifData
-				}
-
-				// Generate thumbnails
-				thumbs, err := g.imageProcessor.ProcessImage(photo.Path, album.ID, photo.ID)
+				// Handle image processing: single decode gives thumbs + oriented dims.
+				thumbs, width, height, err := g.imageProcessor.ProcessImage(photo.Path, album.ID, photo.ID)
 				if err != nil {
 					mu.Lock()
-					errors = append(errors, err)
+					errors = append(errors, fmt.Errorf("photo %s: %w", photo.Filename, err))
 					mu.Unlock()
 					return
 				}
 				photo.Thumbnails = thumbs
+				photo.Width = width
+				photo.Height = height
+
+				// EXIF still reads only the metadata block; cheap compared to decode.
+				if exifData, err := exif.ExtractMetadata(photo.Path); err == nil {
+					photo.EXIF = exifData
+				}
 			}
 			
 			// Report progress
@@ -291,7 +290,10 @@ func (g *Generator) processAlbum(album *Album) error {
 	wg.Wait()
 
 	if len(errors) > 0 {
-		return fmt.Errorf("encountered %d errors processing photos", len(errors))
+		for _, e := range errors {
+			log.Printf("album %s: %v", album.Title, e)
+		}
+		return fmt.Errorf("album %s: %d photo errors (first: %v)", album.Title, len(errors), errors[0])
 	}
 
 	return nil

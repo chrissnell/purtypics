@@ -25,8 +25,7 @@ func (s *Server) handleThumbnails(w http.ResponseWriter, r *http.Request) {
 	
 	size := parts[0]
 	imagePath := strings.Join(parts[1:], "/")
-	fullPath := filepath.Join(s.SourcePath, imagePath)
-	
+
 	// Validate size
 	var width int
 	switch size {
@@ -40,7 +39,14 @@ func (s *Server) handleThumbnails(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid size", http.StatusBadRequest)
 		return
 	}
-	
+
+	// Resolve against SourcePath and reject any traversal attempt.
+	fullPath, err := resolveWithinRoot(s.SourcePath, imagePath)
+	if err != nil {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
 	// Check if source file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		http.Error(w, "Image not found", http.StatusNotFound)
@@ -87,16 +93,9 @@ func (s *Server) handleThumbnails(w http.ResponseWriter, r *http.Request) {
 
 // applyOrientation applies EXIF orientation to an image
 func applyOrientation(imagePath string, img image.Image) (image.Image, error) {
-	file, err := os.Open(imagePath)
+	orientation, err := exif.GetOrientation(imagePath)
 	if err != nil {
 		return img, err
-	}
-	defer file.Close()
-
-	orientation := 1
-	exifData, err := exif.ExtractMetadata(imagePath)
-	if err == nil && exifData != nil {
-		orientation = exifData.Orientation
 	}
 
 	switch orientation {

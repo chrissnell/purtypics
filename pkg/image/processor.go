@@ -1,13 +1,14 @@
 package image
 
 import (
-	"path"
 	"fmt"
 	"image"
 	"image/jpeg"
 	"os"
+	"path"
 	"path/filepath"
 
+	"github.com/cjs/purtypics/pkg/exif"
 	"github.com/disintegration/imaging"
 	_ "golang.org/x/image/webp"
 	_ "image/gif"
@@ -48,97 +49,97 @@ func NewProcessor(outputPath string) *Processor {
 	}
 }
 
-// ProcessImage generates all thumbnail sizes for an image
-func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[string]string, error) {
-	thumbnails := make(map[string]string)
+// sizeSpec pairs a size name with its target max dimension.
+type sizeSpec struct {
+	name   string
+	maxDim int
+}
 
-	// Get source file info
+func (p *Processor) sizeSpecs() [4]sizeSpec {
+	return [4]sizeSpec{
+		{"small", p.sizes.Small},
+		{"medium", p.sizes.Medium},
+		{"large", p.sizes.Large},
+		{"full", p.sizes.Full},
+	}
+}
+
+// ProcessImage generates all thumbnail sizes for an image and returns the
+// (oriented) full-image dimensions. When every thumbnail is already present
+// on disk and newer than the source, no decode is performed; dimensions are
+// read from the source header instead.
+func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[string]string, int, int, error) {
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat source file: %w", err)
+		return nil, 0, 0, fmt.Errorf("failed to stat source file: %w", err)
 	}
 
-	// Check for existing thumbnails first
-	sizes := map[string]int{
-		"small":  p.sizes.Small,
-		"medium": p.sizes.Medium,
-		"large":  p.sizes.Large,
-		"full":   p.sizes.Full,
-	}
+	thumbDir := filepath.Join(p.outputPath, "static", "thumbs", albumID)
+	specs := p.sizeSpecs()
 
-	// Check if all thumbnails exist and are newer than source
+	// Cache check: if every thumb exists and is newer than source, skip decode.
+	thumbnails := make(map[string]string, len(specs))
 	allCached := true
-	for sizeName := range sizes {
-		thumbDir := filepath.Join(p.outputPath, "static", "thumbs", albumID)
-		ext := ".jpg"
-		thumbPath := filepath.Join(thumbDir, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-		relPath := path.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-		
-		thumbInfo, err := os.Stat(thumbPath)
-		if err != nil || thumbInfo.ModTime().Before(sourceInfo.ModTime()) {
+	for _, s := range specs {
+		name := fmt.Sprintf("%s_%s.jpg", photoID, s.name)
+		thumbPath := filepath.Join(thumbDir, name)
+		info, err := os.Stat(thumbPath)
+		if err != nil || info.ModTime().Before(sourceInfo.ModTime()) {
 			allCached = false
 			break
 		}
-		thumbnails[sizeName] = relPath
+		thumbnails[s.name] = path.Join("/static/thumbs", albumID, name)
 	}
 
-	// If all thumbnails are cached and up-to-date, return them
 	if allCached {
-		return thumbnails, nil
+		// Still need dimensions for templates. DecodeConfig reads headers only.
+		w, h, err := orientedDimensions(sourcePath)
+		if err != nil {
+			return thumbnails, 0, 0, nil // dimensions are best-effort
+		}
+		return thumbnails, w, h, nil
 	}
 
-	// Otherwise, regenerate all thumbnails
-	thumbnails = make(map[string]string)
-
-	// Decode image and auto-orient based on EXIF
+	// Regenerate: decode once, resize N times.
 	img, err := imaging.Open(sourcePath, imaging.AutoOrientation(true))
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, err
+	}
+	bounds := img.Bounds()
+	origWidth, origHeight := bounds.Dx(), bounds.Dy()
+
+	if err := os.MkdirAll(thumbDir, 0755); err != nil {
+		return nil, 0, 0, err
 	}
 
-	bounds := img.Bounds()
-	origWidth := bounds.Dx()
-	origHeight := bounds.Dy()
-
-	// Reuse sizes map from above
-
-	for sizeName, maxDim := range sizes {
-		// Skip if image is smaller than target
-		if origWidth <= maxDim && origHeight <= maxDim && sizeName != "small" {
+	thumbnails = make(map[string]string, len(specs))
+	for _, s := range specs {
+		// Skip upscaling except for "small" (always produced for grid view).
+		if origWidth <= s.maxDim && origHeight <= s.maxDim && s.name != "small" {
 			continue
 		}
 
-		// Calculate new dimensions maintaining aspect ratio
-		var newWidth, newHeight int
-		if origWidth > origHeight {
-			newWidth = maxDim
-			newHeight = origHeight * maxDim / origWidth
-		} else {
-			newHeight = maxDim
-			newWidth = origWidth * maxDim / origHeight
-		}
+		newWidth, newHeight := scaleToFit(origWidth, origHeight, s.maxDim)
+		name := fmt.Sprintf("%s_%s.jpg", photoID, s.name)
+		thumbPath := filepath.Join(thumbDir, name)
 
-		// Create output path
-		thumbDir := filepath.Join(p.outputPath, "static", "thumbs", albumID)
-		if err := os.MkdirAll(thumbDir, 0755); err != nil {
-			return nil, err
-		}
-
-		ext := ".jpg" // always output JPEG for consistency
-		thumbPath := filepath.Join(thumbDir, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-		relPath := path.Join("/static/thumbs", albumID, fmt.Sprintf("%s_%s%s", photoID, sizeName, ext))
-
-		// Resize with Lanczos filter for best quality
 		resized := imaging.Resize(img, newWidth, newHeight, imaging.Lanczos)
-
 		if err := saveJPEG(thumbPath, resized, p.quality); err != nil {
-			return nil, err
+			return nil, 0, 0, err
 		}
-
-		thumbnails[sizeName] = relPath
+		thumbnails[s.name] = path.Join("/static/thumbs", albumID, name)
 	}
 
-	return thumbnails, nil
+	return thumbnails, origWidth, origHeight, nil
+}
+
+// scaleToFit computes dimensions that fit the source into a maxDim square
+// while preserving aspect ratio.
+func scaleToFit(w, h, maxDim int) (int, int) {
+	if w > h {
+		return maxDim, h * maxDim / w
+	}
+	return w * maxDim / h, maxDim
 }
 
 func saveJPEG(path string, img image.Image, quality int) error {
@@ -151,7 +152,29 @@ func saveJPEG(path string, img image.Image, quality int) error {
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: quality})
 }
 
-// GetImageDimensions returns width and height of an image
+// orientedDimensions returns width/height accounting for EXIF orientation.
+// Uses DecodeConfig (header read only) plus a cheap orientation lookup.
+func orientedDimensions(imgPath string) (int, int, error) {
+	file, err := os.Open(imgPath)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer file.Close()
+
+	cfg, _, err := image.DecodeConfig(file)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Swap dims for orientations that rotate 90/270 degrees.
+	if o, err := exif.GetOrientation(imgPath); err == nil && o >= 5 && o <= 8 {
+		return cfg.Height, cfg.Width, nil
+	}
+	return cfg.Width, cfg.Height, nil
+}
+
+// GetImageDimensions returns width and height of an image (raw, unoriented).
+// Kept for backwards compatibility with callers that don't care about orientation.
 func GetImageDimensions(imgPath string) (int, int, error) {
 	file, err := os.Open(imgPath)
 	if err != nil {

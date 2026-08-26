@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
-	"sync"
 
 	"github.com/cjs/purtypics/pkg/gallery"
 	"github.com/cjs/purtypics/pkg/metadata"
@@ -20,20 +19,9 @@ type Server struct {
 	Port         int
 	metadata     *metadata.GalleryMetadata
 	albums       []gallery.Album
-	
-	// Progress trackers
+
 	genTracker    *ProgressTracker
 	deployTracker *ProgressTracker
-	
-	// Legacy progress tracking (for compatibility)
-	genProgress   int
-	genStatus     string
-	genError      string
-	genMutex      sync.RWMutex
-	deployProgress int
-	deployStatus   string
-	deployError    string
-	deployMutex    sync.RWMutex
 }
 
 // NewServer creates a new editor server

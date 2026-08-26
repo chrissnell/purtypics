@@ -66,15 +66,16 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Reset progress
-	s.deployTracker.Reset()
+	// Reject overlapping runs — see handleGenerate for rationale.
+	if !s.deployTracker.TryStart() {
+		http.Error(w, "Deployment already in progress", http.StatusConflict)
+		return
+	}
 	s.deployTracker.Update(0, "starting")
 
-	// Start deployment in background
 	go s.runDeployment(config, deployType, req.DryRun)
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+	writeJSON(w, map[string]string{"status": "started"})
 }
 
 // handleDeployProgress returns deployment progress
@@ -84,18 +85,18 @@ func (s *Server) handleDeployProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	progress, status, error := s.deployTracker.Get()
+	progress, status, errMsg := s.deployTracker.Get()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, map[string]any{
 		"progress": progress,
 		"status":   status,
-		"error":    error,
+		"error":    errMsg,
 	})
 }
 
 // runDeployment runs the deployment process
 func (s *Server) runDeployment(config *deploy.Config, deployType string, dryRun bool) {
+	defer s.deployTracker.Finish()
 	s.deployTracker.Update(0, "deploying")
 
 	sourcePath := s.OutputPath

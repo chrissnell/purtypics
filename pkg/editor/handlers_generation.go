@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,15 +15,17 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reset progress
-	s.genTracker.Reset()
+	// Reject overlapping runs: the tracker is shared state and a second
+	// concurrent Generate would race with the first.
+	if !s.genTracker.TryStart() {
+		http.Error(w, "Generation already in progress", http.StatusConflict)
+		return
+	}
 	s.genTracker.Update(0, "running")
 
-	// Start generation in background
 	go s.runGeneration()
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+	writeJSON(w, map[string]string{"status": "started"})
 }
 
 // handleGenerateProgress returns generation progress
@@ -34,19 +35,18 @@ func (s *Server) handleGenerateProgress(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	progress, status, error := s.genTracker.Get()
+	progress, status, errMsg := s.genTracker.Get()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, map[string]any{
 		"progress": progress,
 		"status":   status,
-		"error":    error,
+		"error":    errMsg,
 	})
 }
 
 // runGeneration runs the gallery generation process
 func (s *Server) runGeneration() {
-	// Update status
+	defer s.genTracker.Finish()
 	s.genTracker.Update(0, "generating")
 
 	// Use the output path from server configuration

@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"encoding/json"
 	"io/fs"
 	"net/http"
 	"os"
@@ -53,6 +52,5 @@ func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(themes)
+	writeJSON(w, themes)
 }
