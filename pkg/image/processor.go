@@ -114,12 +114,11 @@ func (p *Processor) ProcessImage(sourcePath, albumID, photoID string) (map[strin
 
 	thumbnails = make(map[string]string, len(specs))
 	for _, s := range specs {
-		// Skip upscaling except for "small" (always produced for grid view).
-		if origWidth <= s.maxDim && origHeight <= s.maxDim && s.name != "small" {
-			continue
+		// Don't upscale images beyond their native resolution; cap at native dimensions
+		newWidth, newHeight := origWidth, origHeight
+		if origWidth > s.maxDim || origHeight > s.maxDim {
+			newWidth, newHeight = scaleToFit(origWidth, origHeight, s.maxDim)
 		}
-
-		newWidth, newHeight := scaleToFit(origWidth, origHeight, s.maxDim)
 		name := fmt.Sprintf("%s_%s.jpg", photoID, s.name)
 		thumbPath := filepath.Join(thumbDir, name)
 

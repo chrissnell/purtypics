@@ -33,16 +33,22 @@ type GPSData struct {
 func ExtractMetadata(path string) (*EXIFData, error) {
 	file, err := os.Open(path)
 	if err != nil {
+		fmt.Printf("[DEBUG] Failed to open file %s: %v\n", path, err)
 		return nil, err
 	}
 	defer file.Close()
 
-	x, err := exif.Decode(file)
-	if err != nil {
-		return nil, err // not all images have EXIF
+	data := &EXIFData{
+		Orientation: 1,
 	}
 
-	data := &EXIFData{}
+	x, err := exif.Decode(file)
+	if err != nil {
+		fmt.Printf("[DEBUG EXIF] %s: exif.Decode error (skipping EXIF, continuing): %v\n", path, err)
+		return data, nil
+	}
+
+	fmt.Printf("[DEBUG EXIF] %s: EXIF successfully read!\n", path)
 
 	// Extract datetime
 	if dt, err := x.DateTime(); err == nil {
